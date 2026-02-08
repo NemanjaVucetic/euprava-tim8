@@ -1,0 +1,122 @@
+version: "3.9"
+
+services:
+  reverse-proxy:
+    build:
+      context: ./reverse-proxy
+      dockerfile: Dockerfile
+    container_name: reverse-proxy
+    restart: on-failure
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth-service
+      - traffic-police-service
+      - mup-vehicles-service
+    networks:
+      - project-net
+
+  auth-service:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    container_name: auth
+    environment:
+      - SERVICE_PORT=${AUTH_SERVICE_PORT}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - ISSUER=demo-auth
+    expose:
+      - "${AUTH_SERVICE_PORT}"
+    networks:
+      - project-net
+    depends_on:
+      database:
+        condition: service_started
+    restart: unless-stopped
+  traffic-police-service:
+    build:
+      context: ./traffic-police
+      dockerfile: Dockerfile
+    container_name: traffic-police
+    environment:
+      - SERVICE_PORT=${TRAFFIC_POLICE_SERVICE_PORT}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+      - HOUSING_BASE_URL=http://mup-vehicles-service:8080
+      - HOUSING_TIMEOUT_MS=3000
+    expose:
+      - "${TRAFFIC_POLICE_SERVICE_PORT}"
+    networks:
+      - project-net
+    depends_on:
+      database:
+        condition: service_started
+    restart: unless-stopped
+
+  mup-vehicles-service:
+    build:
+      context: ./mup-vehicles
+      dockerfile: Dockerfile
+    container_name: mup-vehicles
+    environment:
+      - SERVICE_PORT=${MUP_VEHICLES_SERVICE_PORT}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+    expose:
+      - "${MUP_VEHICLES_SERVICE_PORT}"
+    networks:
+      - project-net
+    depends_on:
+      database:
+        condition: service_started
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: client
+    ports:
+      - "${FRONTEND_PORT}:5173"
+    depends_on:
+      - mup-vehicles-service
+      - auth-service
+      - traffic-police-service
+    networks:
+      - project-net
+    restart: unless-stopped
+
+  database:
+    image: postgres:15
+    container_name: database
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    command: [ "postgres", "-c", "shared_preload_libraries=pg_trgm" ]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - project-net
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+
+networks:
+  project-net:
+    driver: bridge
