@@ -3,7 +3,7 @@ version: "3.9"
 services:
   reverse-proxy:
     build:
-      context: ./reverse-proxy
+      context: ./backend/reverse-proxy
       dockerfile: Dockerfile
     container_name: reverse-proxy
     restart: on-failure
@@ -18,7 +18,7 @@ services:
 
   auth-service:
     build:
-      context: ./auth
+      context: ./backend/auth
       dockerfile: Dockerfile
     container_name: auth
     environment:
@@ -40,7 +40,7 @@ services:
     restart: unless-stopped
   traffic-police-service:
     build:
-      context: ./traffic-police
+      context: ./backend/traffic-police
       dockerfile: Dockerfile
     container_name: traffic-police
     environment:
@@ -63,7 +63,7 @@ services:
 
   mup-vehicles-service:
     build:
-      context: ./mup-vehicles
+      context: ./backend/mup-vehicles
       dockerfile: Dockerfile
     container_name: mup-vehicles
     environment:
@@ -80,21 +80,6 @@ services:
     depends_on:
       database:
         condition: service_started
-    restart: unless-stopped
-
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-    container_name: client
-    ports:
-      - "${FRONTEND_PORT}:5173"
-    depends_on:
-      - mup-vehicles-service
-      - auth-service
-      - traffic-police-service
-    networks:
-      - project-net
     restart: unless-stopped
 
   database:
