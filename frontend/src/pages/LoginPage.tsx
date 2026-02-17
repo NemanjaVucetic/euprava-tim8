@@ -2,37 +2,43 @@ import { useState } from "react";
 import { authApi } from "../api/queries";
 
 type Props = {
-  onLogin: (username: string) => void;
+  onLogin: (email: string) => void;
 };
 
 type Mode = "login" | "register";
-type Role = "CITIZEN" | "MUP" | "TRAFFIC";
 
 export default function LoginPage({ onLogin }: Props) {
   const [mode, setMode] = useState<Mode>("login");
 
+  // register fields
   const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName] = useState("");
+  const [lastName, setLastName] = useState("");
 
-  const [email, setEmail] = useState(""); // optional, ali korisno
+  // login/register
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [role, setRole] = useState<Role>("CITIZEN");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const usernameOk = firstName.trim().length >= 3;
+  const firstNameOk = firstName.trim().length >= 2;
+  const lastNameOk = lastName.trim().length >= 2;
+  const emailOk = email.trim().length >= 5 && email.includes("@");
   const passwordOk = password.trim().length >= 3;
 
-  const canLogin = usernameOk && passwordOk;
-  const canRegister = usernameOk && passwordOk && confirm === password;
+  const canLogin = emailOk && passwordOk;
+  const canRegister = firstNameOk && lastNameOk && emailOk && passwordOk && confirm === password;
+
+  function resetMessages() {
+    setError(null);
+    setSuccess(null);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
+    resetMessages();
 
     if (loading) return;
 
@@ -43,18 +49,16 @@ export default function LoginPage({ onLogin }: Props) {
         if (!canRegister) return;
 
         await authApi.register({
-          firstName,
-          lastName,
-          email: email || undefined,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
           password,
-          // ako backend podržava:
-          // firstName, lastName ...
         });
 
         setSuccess("Registracija uspešna. Sada se prijavi.");
         setMode("login");
         setConfirm("");
-        // ostavljamo username da bude popunjen
+        setPassword("");
         return;
       }
 
@@ -62,19 +66,23 @@ export default function LoginPage({ onLogin }: Props) {
       if (!canLogin) return;
 
       const res = await authApi.login({
-        email,
+        email: email.trim(),
         password,
       });
 
-      const token = res?.accessToken || res?.token;
+      const token = (res as any)?.accessToken || (res as any)?.token;
       if (token) localStorage.setItem("accessToken", token);
 
-      localStorage.setItem("role", role);
-      localStorage.setItem("email", email);
+      localStorage.setItem("email", email.trim());
 
-      onLogin(`${email} (${role})`);
+      onLogin(email.trim());
     } catch (err: any) {
-      setError(err?.message || "Neuspešna akcija");
+      // ako koristiš axios/fetch wrapper, ovde možeš fino da izvučeš poruku
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Neuspešna akcija. Proveri kredencijale i pokušaj ponovo.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -131,8 +139,7 @@ export default function LoginPage({ onLogin }: Props) {
               type="button"
               onClick={() => {
                 setMode("login");
-                setError(null);
-                setSuccess(null);
+                resetMessages();
               }}
               className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${
                 mode === "login"
@@ -146,8 +153,7 @@ export default function LoginPage({ onLogin }: Props) {
               type="button"
               onClick={() => {
                 setMode("register");
-                setError(null);
-                setSuccess(null);
+                resetMessages();
               }}
               className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${
                 mode === "register"
@@ -165,8 +171,8 @@ export default function LoginPage({ onLogin }: Props) {
             </h2>
             <p className="mt-1 text-sm text-slate-400">
               {mode === "login"
-                ? "Unesi kredencijale da pristupiš portalu."
-                : "Kreiraj nalog za pristup portalu."}
+                ? "Unesi email i lozinku da pristupiš portalu."
+                : "Kreiraj nalog (ime, prezime, email i lozinka)."}
             </p>
           </div>
 
@@ -182,107 +188,95 @@ export default function LoginPage({ onLogin }: Props) {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm text-slate-300">
-                Korisničko ime
-              </label>
-              <input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
-                placeholder="npr. dalibor"
-              />
-                            <input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
-                placeholder="npr. dalibor"
-              />
-              {!usernameOk && firstName.length > 0 && (
-                <p className="mt-1 text-xs text-slate-500">
-                  Minimum 3 karaktera.
-                </p>
-              )}
-            </div>
-
+            {/* First + Last name (register only) */}
             {mode === "register" && (
-              <div>
-                <label className="mb-1 block text-sm text-slate-300">
-                  Email (opciono)
-                </label>
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
-                  placeholder="npr. dalibor@mail.com"
-                />
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm text-slate-300">Ime</label>
+                  <input
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+                    placeholder="npr. Aleksandra"
+                    autoComplete="given-name"
+                  />
+                  {!firstNameOk && firstName.length > 0 && (
+                    <p className="mt-1 text-xs text-slate-500">Minimum 2 karaktera.</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm text-slate-300">Prezime</label>
+                  <input
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+                    placeholder="npr. Batinić"
+                    autoComplete="family-name"
+                  />
+                  {!lastNameOk && lastName.length > 0 && (
+                    <p className="mt-1 text-xs text-slate-500">Minimum 2 karaktera.</p>
+                  )}
+                </div>
               </div>
             )}
 
+            {/* Email */}
             <div>
-              <label className="mb-1 block text-sm text-slate-300">
-                Lozinka
-              </label>
+              <label className="mb-1 block text-sm text-slate-300">Email</label>
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+                placeholder="npr. aleksandra@gmail.com"
+                type="email"
+                autoComplete="email"
+              />
+              {!emailOk && email.length > 0 && (
+                <p className="mt-1 text-xs text-slate-500">Unesi ispravan email.</p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="mb-1 block text-sm text-slate-300">Lozinka</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
                 placeholder="••••••••"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
               />
               {!passwordOk && password.length > 0 && (
-                <p className="mt-1 text-xs text-slate-500">
-                  Minimum 3 karaktera.
-                </p>
+                <p className="mt-1 text-xs text-slate-500">Minimum 3 karaktera.</p>
               )}
             </div>
 
+            {/* Confirm password (register only) */}
             {mode === "register" && (
               <div>
-                <label className="mb-1 block text-sm text-slate-300">
-                  Potvrdi lozinku
-                </label>
+                <label className="mb-1 block text-sm text-slate-300">Potvrdi lozinku</label>
                 <input
                   type="password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
                   placeholder="••••••••"
+                  autoComplete="new-password"
                 />
                 {confirm.length > 0 && confirm !== password && (
-                  <p className="mt-1 text-xs text-red-300">
-                    Lozinke se ne poklapaju.
-                  </p>
+                  <p className="mt-1 text-xs text-red-300">Lozinke se ne poklapaju.</p>
                 )}
               </div>
             )}
-
-            {/* Role ostaje kao demo/select */}
-            <div>
-              <label className="mb-1 block text-sm text-slate-300">
-                Uloga
-              </label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as Role)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 focus:border-indigo-500 focus:outline-none"
-              >
-                <option value="CITIZEN">Građanin</option>
-                <option value="MUP">Službenik MUP</option>
-                <option value="TRAFFIC">Saobraćajna policija</option>
-              </select>
-            </div>
 
             <button
               type="submit"
               disabled={loading || (mode === "login" ? !canLogin : !canRegister)}
               className="w-full rounded-xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading
-                ? "Sačekaj..."
-                : mode === "login"
-                ? "Prijavi se"
-                : "Registruj se"}
+              {loading ? "Sačekaj..." : mode === "login" ? "Prijavi se" : "Registruj se"}
             </button>
 
             <p className="text-center text-xs text-slate-500">
@@ -291,7 +285,10 @@ export default function LoginPage({ onLogin }: Props) {
                   Nemaš nalog?{" "}
                   <button
                     type="button"
-                    onClick={() => setMode("register")}
+                    onClick={() => {
+                      setMode("register");
+                      resetMessages();
+                    }}
                     className="text-slate-200 underline underline-offset-4 hover:text-white"
                   >
                     Registruj se
@@ -302,7 +299,10 @@ export default function LoginPage({ onLogin }: Props) {
                   Već imaš nalog?{" "}
                   <button
                     type="button"
-                    onClick={() => setMode("login")}
+                    onClick={() => {
+                      setMode("login");
+                      resetMessages();
+                    }}
                     className="text-slate-200 underline underline-offset-4 hover:text-white"
                   >
                     Prijavi se
