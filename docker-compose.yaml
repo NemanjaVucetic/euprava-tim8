@@ -36,8 +36,9 @@ services:
       - project-net
     depends_on:
       database:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
+
   traffic-police-service:
     build:
       context: ./backend/traffic-police
@@ -58,7 +59,7 @@ services:
       - project-net
     depends_on:
       database:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   mup-vehicles-service:
@@ -79,7 +80,7 @@ services:
       - project-net
     depends_on:
       database:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   database:
@@ -91,7 +92,11 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: ${DB_NAME}
-    command: [ "postgres", "-c", "shared_preload_libraries=pg_trgm" ]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME} -h localhost"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:

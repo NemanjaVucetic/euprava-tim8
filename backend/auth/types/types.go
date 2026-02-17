@@ -12,9 +12,9 @@ type User struct {
 type Role string
 
 const (
-	Admin   Role = "ADMIN"
-	Student Role = "STUDENT"
-	Teacher Role = "TEACHER"
+	Admin   Role = "CITIZEN"
+	Student Role = "MUP"
+	Teacher Role = "TRAFFIC"
 )
 
 type LoginReq struct {

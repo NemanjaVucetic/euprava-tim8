@@ -52,7 +52,7 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 			Password:  string(hash),
 			FirstName: in.FirstName,
 			LastName:  in.LastName,
-			Role:      "STUDENT",
+			Role:      "CITIZEN",
 		}
 
 		if err := db.WithContext(c.Request.Context()).Create(&u).Error; err != nil {

@@ -5,8 +5,8 @@ import (
 	"auth/data"
 	"auth/user"
 	"fmt"
+
 	"github.com/gin-gonic/gin"
-	"log"
 )
 
 func main() {
@@ -17,11 +17,7 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("Failed to connect to database: %v", err))
 	}
-	// if err = data.AutoMigrate(db); err != nil {
-	// 	panic(err)
-	// }
 
-	// Release mode
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 
@@ -33,9 +29,6 @@ func main() {
 
 	user.WithUserAPI(api, db)
 
-	url := fmt.Sprintf("%s:%d", cfg.ServiceHost, cfg.ServicePort)
+	router.Run(fmt.Sprintf("0.0.0.0:%d", cfg.ServicePort))
 
-	if err := router.Run(url); err != nil {
-		log.Fatal("greska prilikom pokretanja servera", err)
-	}
 }

@@ -27,6 +27,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&types.OwnershipTransfer{},
 		&types.Driver{},
 		&types.Fine{},
+		&types.User{},
 	)
 	if err != nil {
 		return err
