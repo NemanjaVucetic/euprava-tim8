@@ -1,9 +1,11 @@
 package types
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -12,14 +14,14 @@ import (
 //
 
 type BaseModel struct {
-	ID        string    `json:"id" gorm:"primaryKey;type:uuid"`
+	ID        string    `json:"id" gorm:"primaryKey;type:text"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {
 	if b.ID == "" {
-		b.ID = uuid.NewString()
+		b.ID = "id"
 	}
 	return nil
 }
@@ -204,4 +206,83 @@ type LoginResp struct {
 	AccessToken string `json:"access_token"`
 	ExpiresIn   int64  `json:"expires_in"`
 	TokenType   string `json:"token_type"`
+}
+
+type MupOwner struct {
+	ID        string `json:"id"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	JMBG      string `json:"jmbg"`
+	Email     string `json:"email"`
+	Address   string `json:"address"`
+}
+
+type MupVehicle struct {
+	ID           string   `json:"id"`
+	Registration string   `json:"registration"`
+	Mark         string   `json:"mark"`
+	Model        string   `json:"model"`
+	Year         int      `json:"year"`
+	Color        string   `json:"color"`
+	IsStolen     bool     `json:"isStolen"`
+	Owner        MupOwner `json:"owner"`
+}
+
+type MupDriver struct {
+	ID                      string   `json:"id"`
+	IsSuspended             bool     `json:"isSuspended"`
+	NumberOfViolationPoints int      `json:"numberOfViolationPoints"`
+	Picture                 string   `json:"picture"`
+	Owner                   MupOwner `json:"owner"`
+}
+
+type pointsReq struct {
+	Delta int `json:"delta"`
+}
+
+func mupGet[T any](client *http.Client, baseURL, path string) (*T, int, error) {
+	req, err := http.NewRequest("GET", baseURL+path, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return nil, res.StatusCode, nil
+	}
+
+	var out T
+	if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
+		return nil, res.StatusCode, err
+	}
+	return &out, res.StatusCode, nil
+}
+
+func mupPatchJSON[T any](client *http.Client, baseURL, path string, body any) (*T, int, error) {
+	b, _ := json.Marshal(body)
+	req, err := http.NewRequest("PATCH", baseURL+path, bytes.NewReader(b))
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return nil, res.StatusCode, nil
+	}
+
+	var out T
+	if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
+		return nil, res.StatusCode, err
+	}
+	return &out, res.StatusCode, nil
 }

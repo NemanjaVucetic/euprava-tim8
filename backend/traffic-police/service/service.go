@@ -77,9 +77,9 @@ func (s *Store) ListVehicles(out *[]models.Vehicle) error {
 	return s.DB.Preload("Owner").Order("created_at desc").Find(out).Error
 }
 
-func (s *Store) GetVehicle(id string, out *models.Vehicle) error {
-	return s.DB.Preload("Owner").First(out, "id = ?", id).Error
-}
+// func (s *Store) GetVehicle(id string, out *models.Vehicle) error {
+// 	return s.DB.Preload("Owner").First(out, "registration = ?", id).Error
+// }
 
 func (s *Store) SearchVehicles(req models.SearchVehicleRequest, out *[]models.Vehicle) error {
 	q := s.DB.Model(&models.Vehicle{}).Preload("Owner")
@@ -134,14 +134,6 @@ func (s *Store) CreateViolation(v *models.Violation) error {
 		}
 		if p.IsSuspended {
 			return errors.New("police person is suspended")
-		}
-	}
-
-	// vehicle exists (optional)
-	if v.VehicleID != "" {
-		var veh models.Vehicle
-		if err := s.GetVehicle(v.VehicleID, &veh); err != nil {
-			return err
 		}
 	}
 

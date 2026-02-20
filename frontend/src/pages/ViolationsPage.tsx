@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { trafficPoliceApi } from "../api/queries";
+import { mupVehiclesApi, trafficPoliceApi } from "../api/queries";
 import Select from "../components/Select";
-import type { PolicePerson, TypeOfViolation, Vehicle, Violation } from "../types/api";
+import type {
+  PolicePerson,
+  TypeOfViolation,
+  Violation,
+  Vehicle,
+  Driver,
+} from "../types/api";
 
 function fmtDate(iso: string) {
   const d = new Date(iso);
@@ -9,15 +15,27 @@ function fmtDate(iso: string) {
   return d.toLocaleString();
 }
 
+// backend može vratiti violation sam ili wrapper
+type CreateViolationResponse =
+  | Violation
+  | {
+      violation: Violation;
+      vehicle?: any;
+      driver?: any;
+      warning?: string;
+    };
+
 export default function ViolationsPage() {
   const [violations, setViolations] = useState<Violation[]>([]);
   const [selected, setSelected] = useState<Violation | null>(null);
 
   const [police, setPolice] = useState<PolicePerson[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [mupVehicles, setMupVehicles] = useState<Vehicle[]>([]);
+  const [mupDrivers, setMupDrivers] = useState<Driver[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // filter
   const [driverFilter, setDriverFilter] = useState("");
@@ -26,8 +44,10 @@ export default function ViolationsPage() {
   const [typeOfViolation, setTypeOfViolation] = useState<TypeOfViolation>("MINOR");
   const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 16));
   const [location, setLocation] = useState("");
+
+  // NOTE: driverId = MUP driver UUID, vehicleId = registration string
   const [driverId, setDriverId] = useState("");
-  const [vehicleId, setVehicleId] = useState("");
+  const [vehicleRegistration, setVehicleRegistration] = useState("");
   const [policeId, setPoliceId] = useState("");
 
   const [creating, setCreating] = useState(false);
@@ -50,28 +70,43 @@ export default function ViolationsPage() {
     [police]
   );
 
+  // IMPORTANT: value = registration (ne id)
   const vehicleOptions = useMemo(
     () =>
-      vehicles.map((v) => ({
-        value: v.id,
+      mupVehicles.map((v) => ({
+        value: v.registration,
         label: `${v.registration} • ${v.mark} ${v.model} (${v.year})`,
       })),
-    [vehicles]
+    [mupVehicles]
+  );
+
+  const driverOptions = useMemo(
+    () =>
+      mupDrivers.map((d) => ({
+        value: d.id,
+        label: `${d.owner?.firstName ?? "-"} ${d.owner?.lastName ?? "-"} • points: ${
+          d.numberOfViolationPoints
+        }${d.isSuspended ? " (SUSP)" : ""}`,
+      })),
+    [mupDrivers]
   );
 
   async function loadBase() {
     setError(null);
+    setSuccess(null);
     setLoading(true);
     try {
-      const [vList, pList, vehList] = await Promise.all([
+      const [vList, pList, vehList, drvList] = await Promise.all([
         trafficPoliceApi.getViolations(),
         trafficPoliceApi.getPolice(),
-        trafficPoliceApi.getVehicles(),
+        mupVehiclesApi.getVehicles(),
+        mupVehiclesApi.getDrivers(),
       ]);
 
       setViolations(Array.isArray(vList) ? (vList as Violation[]) : []);
       setPolice(Array.isArray(pList) ? (pList as PolicePerson[]) : []);
-      setVehicles(Array.isArray(vehList) ? (vehList as Vehicle[]) : []);
+      setMupVehicles(Array.isArray(vehList) ? (vehList as Vehicle[]) : []);
+      setMupDrivers(Array.isArray(drvList) ? (drvList as Driver[]) : []);
       setSelected(null);
     } catch (e: any) {
       setError(e?.message || "Greška pri učitavanju.");
@@ -86,6 +121,7 @@ export default function ViolationsPage() {
 
   async function openDetails(id: string) {
     setError(null);
+    setSuccess(null);
     try {
       const v = (await trafficPoliceApi.getViolationById(id)) as Violation;
       setSelected(v || null);
@@ -99,6 +135,7 @@ export default function ViolationsPage() {
     if (!id) return loadBase();
 
     setError(null);
+    setSuccess(null);
     setLoading(true);
     try {
       const list = (await trafficPoliceApi.getViolationsByDriver(id)) as Violation[];
@@ -113,33 +150,55 @@ export default function ViolationsPage() {
 
   async function createViolation() {
     setError(null);
+    setSuccess(null);
 
     const payload = {
       typeOfViolation,
       date: date ? new Date(date).toISOString() : new Date().toISOString(),
       location: location.trim(),
+
+      // MUP driver UUID
       driverId: driverId.trim(),
-      vehicleId,
+
+      // registration string (backend tako očekuje)
+      vehicleId: vehicleRegistration,
+
+      // traffic police UUID
       policeId,
     };
 
     if (!payload.location) return setError("Lokacija je obavezna.");
-    if (!payload.driverId) return setError("Driver ID je obavezan (dok ne imamo dropdown).");
+    if (!payload.driverId) return setError("Vozač je obavezan.");
     if (!payload.vehicleId) return setError("Vozilo je obavezno.");
     if (!payload.policeId) return setError("Policajac je obavezan.");
 
     setCreating(true);
     try {
-      const created = (await trafficPoliceApi.createViolation(payload)) as Violation;
+      const res = (await trafficPoliceApi.createViolation(payload)) as CreateViolationResponse;
+
+      // normalize
+      const created: Violation =
+        (res as any)?.violation ? (res as any).violation : (res as Violation);
+
+      const warning = (res as any)?.warning as string | undefined;
+
       setViolations((prev) => [created, ...prev]);
       setSelected(created);
 
+      if (warning) setSuccess(`Kreirano, ali: ${warning}`);
+      else setSuccess("Prekršaj kreiran. Poeni vozača su ažurirani.");
+
+      // reset form
       setLocation("");
       setDriverId("");
-      setVehicleId("");
+      setVehicleRegistration("");
       setPoliceId("");
       setTypeOfViolation("MINOR");
       setDate(new Date().toISOString().slice(0, 16));
+
+      // refresh drivers (da vidiš updated points/suspend u dropdown-u)
+      const drvList = (await mupVehiclesApi.getDrivers()) as Driver[];
+      setMupDrivers(Array.isArray(drvList) ? drvList : []);
     } catch (e: any) {
       setError(e?.message || "Neuspešno kreiranje prekršaja.");
     } finally {
@@ -154,7 +213,7 @@ export default function ViolationsPage() {
           <div>
             <h2 className="text-lg font-semibold">Prekršaji</h2>
             <p className="mt-1 text-sm text-slate-400">
-              Lista + detalji. Kreiranje sa dropdown (police/vehicle).
+              Lista + detalji. Kreiranje koristi MUP dropdown (driver/vehicle) + policajac.
             </p>
           </div>
 
@@ -172,13 +231,19 @@ export default function ViolationsPage() {
           </div>
         )}
 
+        {success && (
+          <div className="mt-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+            {success}
+          </div>
+        )}
+
         {/* Filter */}
         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
           <input
             value={driverFilter}
             onChange={(e) => setDriverFilter(e.target.value)}
             className="rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-            placeholder="Filter po driverId (UUID) — prazno = svi"
+            placeholder="Filter po driverId (MUP UUID) — prazno = svi"
           />
           <button
             onClick={searchByDriver}
@@ -215,6 +280,9 @@ export default function ViolationsPage() {
                     <div className="mt-1 text-xs text-slate-400">{v.location}</div>
                     <div className="mt-1 text-xs text-slate-500 break-all">
                       Driver: {String(v.driverId)}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500 break-all">
+                      Vehicle: {String(v.vehicleId)}
                     </div>
                   </button>
                 ))
@@ -304,23 +372,22 @@ export default function ViolationsPage() {
             />
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs text-slate-400">Driver ID (dok ne dodamo /drivers)</label>
-            <input
-              value={driverId}
-              onChange={(e) => setDriverId(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-              placeholder="UUID"
-            />
-          </div>
+          <Select
+            label="Vozač (MUP)"
+            value={driverId}
+            onChange={setDriverId}
+            options={driverOptions}
+            placeholder={mupDrivers.length ? "-- izaberi vozača --" : "Nema vozača"}
+            disabled={mupDrivers.length === 0}
+          />
 
           <Select
-            label="Vozilo"
-            value={vehicleId}
-            onChange={setVehicleId}
+            label="Vozilo (MUP) – registracija"
+            value={vehicleRegistration}
+            onChange={setVehicleRegistration}
             options={vehicleOptions}
-            placeholder={vehicles.length ? "-- izaberi vozilo --" : "Nema vozila"}
-            disabled={vehicles.length === 0}
+            placeholder={mupVehicles.length ? "-- izaberi vozilo --" : "Nema vozila"}
+            disabled={mupVehicles.length === 0}
           />
 
           <Select
@@ -339,6 +406,11 @@ export default function ViolationsPage() {
           >
             {creating ? "Kreiram..." : "Kreiraj"}
           </button>
+
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-3 text-xs text-slate-400">
+            Backend radi: proveru vozila (registracija), proveru vozača (blok ako suspendovan),
+            automatske poene i auto-suspend.
+          </div>
         </div>
       </aside>
     </div>

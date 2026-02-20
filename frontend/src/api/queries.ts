@@ -66,24 +66,24 @@ export const authApi = {
 //
 
 export const mupVehiclesApi = {
-  getAllVehicles: () => apiFetch(`/api/mup-vehicles/vehicles`),
+  health: () => apiFetch(`/api/mup-vehicles/health`),
 
+  // vehicles
+  getVehicles: () => apiFetch(`/api/mup-vehicles/vehicles`),
   getVehicleByRegistration: (registration: string) =>
-    apiFetch(`/api/mup-vehicles/vehicles/${registration}`),
+    apiFetch(`/api/mup-vehicles/vehicles/${encodeURIComponent(registration)}`),
+  getVehicleByOwnerJmbg: (jmbg: string) =>
+    apiFetch(`/api/mup-vehicles/vehicles/owner/${encodeURIComponent(jmbg)}`),
 
-  getOwners: () => apiFetch(`/api/mup-vehicles/owners`),
-
+  // drivers
   getDrivers: () => apiFetch(`/api/mup-vehicles/drivers`),
+  getDriverById: (id: string) => apiFetch(`/api/mup-vehicles/drivers/${id}`),
 
+  // owners / transfers / admins
+  getOwners: () => apiFetch(`/api/mup-vehicles/owners`),
   getTransfers: () => apiFetch(`/api/mup-vehicles/transfers`),
-
-  createTransfer: (data: any) =>
-    apiFetch(`/api/mup-vehicles/transfers`, {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-}
-
+  getAdmins: () => apiFetch(`/api/mup-vehicles/admins`),
+};
 //
 // ======================
 // 🚔 TRAFFIC POLICE SERVICE

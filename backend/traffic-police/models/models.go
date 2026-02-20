@@ -1,9 +1,9 @@
 package models
 
 import (
+	"math/rand"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -12,14 +12,27 @@ import (
 //
 
 type BaseModel struct {
-	ID        string    `json:"id" gorm:"primaryKey;type:uuid"`
+	ID        string    `json:"id" gorm:"primaryKey;type:text"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
+func generateID(n int) string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	s := make([]rune, n)
+	for i := range s {
+		s[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(s)
+}
+
 func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {
+	// Seed the random generator so it doesn't produce the same ID every time
+	rand.Seed(time.Now().UnixNano())
+
 	if b.ID == "" {
-		b.ID = uuid.NewString()
+		// Generates a random 10-character string ID
+		b.ID = generateID(10)
 	}
 	return nil
 }
