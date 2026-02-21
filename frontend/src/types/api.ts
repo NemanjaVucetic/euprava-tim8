@@ -89,6 +89,19 @@ export type OwnershipTransfer = BaseModel & {
 
 export type Rank = "LOW" | "MEDIUM" | "HIGH"
 
+export function formatRank(rank: Rank): string {
+  switch (rank) {
+    case "LOW":
+      return "Policajac"
+    case "MEDIUM":
+      return "Narednik"
+    case "HIGH":
+      return "Inspektor"
+    default:
+      return rank
+  }
+}
+
 export type PolicePerson = BaseModel & {
   firstName: string
   lastName: string
@@ -99,6 +112,19 @@ export type PolicePerson = BaseModel & {
 }
 
 export type TypeOfViolation = "MINOR" | "MAJOR" | "CRITICAL"
+
+export function formatViolation(type: TypeOfViolation): string {
+  switch (type) {
+    case "MINOR":
+      return "Manji prekršaj"
+    case "MAJOR":
+      return "Veći prekršaj"
+    case "CRITICAL":
+      return "Kritičan prekršaj"
+    default:
+      return type
+  }
+}
 
 export type Violation = BaseModel & {
   typeOfViolation: TypeOfViolation
@@ -119,6 +145,13 @@ export type Fine = BaseModel & {
 // ======================
 // REQUEST DTOs
 // ======================
+export type PersonalViolation = BaseModel & {
+  citizenId: string
+  type: TypeOfViolation
+  description: string
+  status: "PENDING" | "PAID" | "CANCELLED"
+}
+
 
 export type VehicleVerificationRequest = {
   registration: string

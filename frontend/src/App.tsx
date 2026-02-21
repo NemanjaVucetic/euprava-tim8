@@ -15,6 +15,8 @@ import ViolationsPage from "./pages/ViolationsPage";
 import UsersRolesPage from "./pages/UsersRolesPage";
 import MupVehiclesPage from "./pages/MupVehicles";
 import ChecksPage from "./pages/ChecksPage";
+import MyViolationsPage from "./pages/MyViolationsPage";
+import RequireRole from "./api/RequireRole";
 
 function getStoredUser() {
   const email = localStorage.getItem("email");
@@ -50,9 +52,6 @@ function Layout({
             <nav className="flex gap-4 text-sm text-slate-300">
               <Link to="/mup" className="hover:text-white">
                 MUP Vozila
-              </Link>
-              <Link to="/traffic" className="hover:text-white">
-                Saobraćaj
               </Link>
               <Link to="/traffic/police" className="hover:text-white">
                 Policija
@@ -132,6 +131,14 @@ export default function App() {
                   <Route path="/traffic/violations" element={<ViolationsPage />} />
                   <Route path="/admin/users" element={<UsersRolesPage />} />
                   <Route path="/traffic/checks" element={<ChecksPage />} />
+                  <Route
+                    path="/my-violations"
+                    element={
+                      <RequireRole role="CITIZEN">
+                        <MyViolationsPage />
+                      </RequireRole>
+                    }
+                  />
                   <Route path="*" element={<Navigate to="/traffic" replace />} />
                 </Routes>
               </Layout>

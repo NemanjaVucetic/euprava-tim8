@@ -2,6 +2,7 @@ package user
 
 import (
 	"auth/types"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -14,27 +15,48 @@ import (
 	"gorm.io/gorm"
 )
 
-func getUserByEmailAndPassword(db *gorm.DB, email string) (types.User, error) {
+// same generic helper as traffic service
+func mupGet[T any](client *http.Client, baseURL, path string) (*T, int, error) {
+	req, err := http.NewRequest("GET", baseURL+path, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return nil, res.StatusCode, nil
+	}
+
+	var out T
+	if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
+		return nil, res.StatusCode, err
+	}
+	return &out, res.StatusCode, nil
+}
+
+func getUserByEmail(db *gorm.DB, email string) (*types.User, error) {
 	var u types.User
 	if err := db.Where("email = ?", email).First(&u).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return types.User{}, errors.New("user not found")
+			return nil, nil // not found, not an error
 		}
-		return types.User{}, err
+		return nil, err
 	}
-	return u, nil
+	return &u, nil
 }
 
 func createUser(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var in types.User
 		if err := c.ShouldBindJSON(&in); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   "invalid payload",
-				"details": err.Error(),
-			})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload", "details": err.Error()})
 			return
 		}
+
 		in.Email = strings.TrimSpace(strings.ToLower(in.Email))
 		if in.Email == "" || in.Password == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "email and password are required"})
@@ -47,12 +69,17 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		role := in.Role
+		if role == "" {
+			role = types.RoleCitizen
+		}
+
 		u := types.User{
 			Email:     in.Email,
 			Password:  string(hash),
 			FirstName: in.FirstName,
 			LastName:  in.LastName,
-			Role:      "CITIZEN",
+			Role:      role,
 		}
 
 		if err := db.WithContext(c.Request.Context()).Create(&u).Error; err != nil {
@@ -65,14 +92,11 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusCreated, types.User{
-			ID:    u.ID,
-			Email: u.Email,
-		})
+		c.JSON(http.StatusCreated, types.User{Email: u.Email})
 	}
 }
 
-func login(db *gorm.DB, issuer string, secret []byte) gin.HandlerFunc {
+func login(db *gorm.DB, issuer string, secret []byte, httpClient *http.Client, mupBaseURL string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req types.LoginReq
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -80,36 +104,68 @@ func login(db *gorm.DB, issuer string, secret []byte) gin.HandlerFunc {
 			return
 		}
 
-		email := strings.TrimSpace(req.Email)
-		if email == "" {
-			email = strings.TrimSpace(req.Email)
-		}
-		if email == "" || strings.TrimSpace(req.Password) == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "email/username and password are required"})
+		email := strings.TrimSpace(strings.ToLower(req.Email))
+		password := strings.TrimSpace(req.Password)
+
+		if email == "" || password == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "email and password are required"})
 			return
 		}
 
-		u, err := getUserByEmailAndPassword(db, email)
+		var finalUser *types.User
+		var role types.Role
+
+		// Step 1: try local DB
+		localUser, err := getUserByEmail(db, email)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 			return
 		}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(req.Password)); err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
-			return
+		if localUser != nil {
+			if err := bcrypt.CompareHashAndPassword([]byte(localUser.Password), []byte(password)); err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+				return
+			}
+			finalUser = localUser
+			role = localUser.Role
+
+		} else {
+			// Step 2: not in local DB — hit MUP service directly
+			mupDriver, dSt, mupErr := mupGet[types.MupDriver](httpClient, mupBaseURL, "/drivers/email/"+email)
+			if mupErr != nil || dSt != http.StatusOK || mupDriver == nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+				return
+			}
+
+			// MUP users authenticate with password "123"
+			if password != "123" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+				return
+			}
+
+			// Transient user — not saved to DB
+			finalUser = &types.User{
+				Email:     mupDriver.Owner.Email,
+				FirstName: mupDriver.Owner.FirstName,
+				LastName:  mupDriver.Owner.LastName,
+				Role:      types.RoleCitizen,
+			}
+			role = types.RoleCitizen
 		}
 
+		// Step 3: issue JWT
 		now := time.Now()
 		exp := now.Add(15 * time.Minute)
 
 		claims := jwt.MapClaims{
-			"sub":  u.Email,
-			"iss":  issuer,
-			"role": u.Role,
-			"id":   u.ID,
-			"iat":  now.Unix(),
-			"exp":  exp.Unix(),
+			"sub":   finalUser.Email,
+			"iss":   issuer,
+			"role":  role,
+			"id":    finalUser.ID,
+			"email": finalUser.Email,
+			"iat":   now.Unix(),
+			"exp":   exp.Unix(),
 		}
 
 		tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

@@ -42,6 +42,7 @@ export type LoginResponse = {
   accessToken?: string
   refreshToken?: string
   token?: string
+  role: string
   user?: any
 }
 

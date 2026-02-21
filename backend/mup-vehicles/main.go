@@ -29,6 +29,7 @@ type Owner struct {
 	Address   string `json:"address"`
 	JMBG      string `json:"jmbg"`
 	Email     string `json:"email"`
+	Password  string `json:"password"`
 }
 
 type DriverId struct {
@@ -74,6 +75,7 @@ func seedData() {
 	firstNames := []string{"Marko", "Jovan", "Ana", "Milica", "Petar", "Nikola", "Ivana", "Stefan", "Mina", "Luka"}
 	lastNames := []string{"Markovic", "Jovanovic", "Petrovic", "Nikolic", "Ilic", "Savic", "Stojanovic", "Kovacevic"}
 	streets := []string{"Bulevar Oslobodjenja", "Cara Dusana", "Zmaj Jovina", "Bulevar Evrope", "Narodnog Fronta", "Temerinska", "Kralja Petra"}
+	passwords := []string{"123", "123", "123", "123", "123", "123", "123"}
 
 	marks := []string{"Audi", "BMW", "Volkswagen", "Skoda", "Opel", "Toyota", "Peugeot", "Renault"}
 	modelsByMark := map[string][]string{
@@ -93,6 +95,7 @@ func seedData() {
 	for i := 0; i < 8; i++ {
 		fn := firstNames[rand.Intn(len(firstNames))]
 		ln := lastNames[rand.Intn(len(lastNames))]
+		pw := passwords[rand.Intn(len(passwords))]
 		jmbg := fmt.Sprintf("0%d0%d99%05d%02d", rand.Intn(9)+1, rand.Intn(9)+1, rand.Intn(99999), i+1)
 
 		o := Owner{
@@ -102,6 +105,7 @@ func seedData() {
 			Address:   fmt.Sprintf("%s %d", streets[rand.Intn(len(streets))], rand.Intn(99)+1),
 			JMBG:      jmbg,
 			Email:     fmt.Sprintf("%s.%s%d@mail.com", fn, ln, i+1),
+			Password:  pw,
 		}
 		owners = append(owners, o)
 	}

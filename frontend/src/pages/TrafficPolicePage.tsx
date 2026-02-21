@@ -463,15 +463,15 @@ export default function TrafficPolicePage() {
             <p className="text-xs text-slate-400">Po tipu</p>
             <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
               <div className="rounded-xl border border-slate-800 bg-white/5 p-2">
-                <p className="text-slate-400">MINOR</p>
+                <p className="text-slate-400">Mali</p>
                 <p className="text-lg font-semibold">{stats.minor}</p>
               </div>
               <div className="rounded-xl border border-slate-800 bg-white/5 p-2">
-                <p className="text-slate-400">MAJOR</p>
+                <p className="text-slate-400">Veliki</p>
                 <p className="text-lg font-semibold">{stats.major}</p>
               </div>
               <div className="rounded-xl border border-slate-800 bg-white/5 p-2">
-                <p className="text-slate-400">CRITICAL</p>
+                <p className="text-slate-400">Kritican</p>
                 <p className="text-lg font-semibold">{stats.critical}</p>
               </div>
             </div>

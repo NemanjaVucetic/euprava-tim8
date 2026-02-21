@@ -48,6 +48,15 @@ type MupDriver struct {
 	Owner                   MupOwner `json:"owner"`
 }
 
+type CreatePoliceRequest struct {
+	FirstName   string      `json:"firstName"`
+	LastName    string      `json:"lastName"`
+	Rank        models.Rank `json:"rank"`
+	Email       string      `json:"email"`
+	Password    string      `json:"password"`
+	IsSuspended bool        `json:"isSuspended"`
+}
+
 type pointsReq struct {
 	Delta int `json:"delta"`
 }
@@ -128,21 +137,8 @@ func main() {
 	})
 
 	// ===== Police =====
-	r.POST("/police", func(c *gin.Context) {
-		var p models.PolicePerson
-		if err := c.ShouldBindJSON(&p); err != nil {
-			c.JSON(400, gin.H{"error": err.Error()})
-			return
-		}
-		if err := store.CreatePolice(&p); err != nil {
-			c.JSON(400, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(201, p)
-	})
-
 	r.GET("/police", func(c *gin.Context) {
-		var list []models.PolicePerson
+		var list []models.User
 		if err := store.ListPolice(&list); err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
@@ -150,40 +146,60 @@ func main() {
 		c.JSON(200, list)
 	})
 
-	r.GET("/police/:id", func(c *gin.Context) {
-		var p models.PolicePerson
-		if err := store.GetPolice(c.Param("id"), &p); err != nil {
-			c.JSON(404, gin.H{"error": "not found"})
+	// POST /police
+	r.POST("/police", func(c *gin.Context) {
+		var req CreatePoliceRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(400, gin.H{"error": "invalid payload"})
 			return
 		}
-		c.JSON(200, p)
+
+		u := models.User{
+			Email:    req.Email,
+			Password: req.Password, // hashed inside CreatePolice
+			PoliceProfile: &models.PoliceProfile{
+				FirstName:   req.FirstName,
+				LastName:    req.LastName,
+				Rank:        req.Rank,
+				IsSuspended: req.IsSuspended,
+			},
+		}
+
+		if err := store.CreatePolice(&u); err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(201, u)
 	})
 
+	// PATCH /police/:id/toggle-suspend
 	r.PATCH("/police/:id/toggle-suspend", func(c *gin.Context) {
-		var p models.PolicePerson
-		if err := store.TogglePoliceSuspend(c.Param("id"), &p); err != nil {
+		var u models.User
+		if err := store.TogglePoliceSuspend(c.Param("id"), &u); err != nil {
 			c.JSON(404, gin.H{"error": "not found"})
 			return
 		}
-		c.JSON(200, p)
+		c.JSON(200, u)
 	})
 
+	// PATCH /police/:id/upgrade-rank
 	r.PATCH("/police/:id/upgrade-rank", func(c *gin.Context) {
-		var p models.PolicePerson
-		if err := store.ChangePoliceRank(c.Param("id"), &p, true); err != nil {
-			c.JSON(404, gin.H{"error": "not found or already max rank"})
+		var u models.User
+		if err := store.ChangePoliceRank(c.Param("id"), &u, true); err != nil {
+			c.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(200, p)
+		c.JSON(200, u)
 	})
 
+	// PATCH /police/:id/downgrade-rank
 	r.PATCH("/police/:id/downgrade-rank", func(c *gin.Context) {
-		var p models.PolicePerson
-		if err := store.ChangePoliceRank(c.Param("id"), &p, false); err != nil {
-			c.JSON(400, gin.H{"error": "not found or already min rank"})
+		var u models.User
+		if err := store.ChangePoliceRank(c.Param("id"), &u, false); err != nil {
+			c.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(200, p)
+		c.JSON(200, u)
 	})
 
 	// ===== VEHICLE VERIFY (inter-service) =====

@@ -7,6 +7,7 @@ import (
 
 	"traffic-police/models"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -23,35 +24,41 @@ func NewStore(db *gorm.DB) *Store {
 // ===== Police =====
 //
 
-func (s *Store) CreatePolice(p *models.PolicePerson) error {
+func (s *Store) CreatePolice(p *models.User) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(p.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	p.Password = string(hash)
+	p.Role = models.UserRoleTraffic
 	return s.DB.Create(p).Error
 }
 
-func (s *Store) ListPolice(out *[]models.PolicePerson) error {
-	return s.DB.Order("created_at desc").Find(out).Error
+func (s *Store) ListPolice(out *[]models.User) error {
+	return s.DB.Where("role = ?", models.UserRoleTraffic).Order("created_at desc").Find(out).Error
 }
 
-func (s *Store) GetPolice(id string, out *models.PolicePerson) error {
-	return s.DB.First(out, "id = ?", id).Error
+func (s *Store) GetPolice(id string, out *models.User) error {
+	return s.DB.Where("id = ? AND role = ?", id, models.UserRoleTraffic).First(out).Error
 }
 
-func (s *Store) TogglePoliceSuspend(id string, out *models.PolicePerson) error {
+func (s *Store) TogglePoliceSuspend(id string, out *models.User) error {
 	if err := s.GetPolice(id, out); err != nil {
 		return err
 	}
-	out.IsSuspended = !out.IsSuspended
+	out.PoliceProfile.IsSuspended = !out.PoliceProfile.IsSuspended
 	return s.DB.Save(out).Error
 }
 
-var rankOrder = []models.Rank{"LOW", "MEDIUM", "HIGH"}
+var rankOrder = []models.Rank{models.RankLow, models.RankMedium, models.RankHigh}
 
-func (s *Store) ChangePoliceRank(id string, out *models.PolicePerson, upgrade bool) error {
+func (s *Store) ChangePoliceRank(id string, out *models.User, upgrade bool) error {
 	if err := s.GetPolice(id, out); err != nil {
 		return err
 	}
 	idx := -1
 	for i, r := range rankOrder {
-		if r == out.Rank {
+		if r == out.PoliceProfile.Rank {
 			idx = i
 			break
 		}
@@ -60,12 +67,12 @@ func (s *Store) ChangePoliceRank(id string, out *models.PolicePerson, upgrade bo
 		if idx >= len(rankOrder)-1 {
 			return fmt.Errorf("already max rank")
 		}
-		out.Rank = rankOrder[idx+1]
+		out.PoliceProfile.Rank = rankOrder[idx+1]
 	} else {
 		if idx <= 0 {
 			return fmt.Errorf("already min rank")
 		}
-		out.Rank = rankOrder[idx-1]
+		out.PoliceProfile.Rank = rankOrder[idx-1]
 	}
 	return s.DB.Save(out).Error
 }
@@ -154,13 +161,12 @@ func (s *Store) VerifyVehicle(req models.VehicleVerificationRequest) (bool, *mod
 //
 
 func (s *Store) CreateViolation(v *models.Violation) error {
-	// police exists + not suspended
 	if v.PoliceID != "" {
-		var p models.PolicePerson
+		var p models.User // ← User umesto PoliceProfile
 		if err := s.GetPolice(v.PoliceID, &p); err != nil {
 			return err
 		}
-		if p.IsSuspended {
+		if p.PoliceProfile.IsSuspended { // ← kroz PoliceProfile
 			return errors.New("police person is suspended")
 		}
 	}

@@ -26,13 +26,13 @@ export default function MupVehiclesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [health, setHealth] = useState<any>(null);
+  const [, setHealth] = useState<any>(null);
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [owners, setOwners] = useState<Owner[]>([]);
   const [transfers, setTransfers] = useState<OwnershipTransfer[]>([]);
-  const [admins, setAdmins] = useState<Administrator[]>([]);
+  const [, setAdmins] = useState<Administrator[]>([]);
 
   // details panels (selected)
   const [selectedReg, setSelectedReg] = useState<string>("");
@@ -152,9 +152,9 @@ export default function MupVehiclesPage() {
       <div className="rounded-2xl border border-slate-800 bg-white/5 p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-lg font-semibold">MUP Vozila (mock / in-memory)</h1>
+            <h1 className="text-lg font-semibold">MUP Vozila</h1>
             <p className="mt-1 text-sm text-slate-400">
-              Pregled mock podataka + dropdown pretrage (registracija, JMBG, driverId).
+              Pregled podataka
             </p>
           </div>
 
@@ -171,21 +171,6 @@ export default function MupVehiclesPage() {
             {error}
           </div>
         )}
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
-            <p className="text-xs text-slate-400">Health</p>
-            <p className="mt-1 text-sm text-slate-200">
-              {health?.status ? String(health.status) : "—"}
-            </p>
-            <Mono>{health ? JSON.stringify(health) : ""}</Mono>
-          </div>
-
-          <div className="rounded-2xl border border-slate-800 bg-gradient-to-r from-indigo-500/10 to-cyan-500/10 p-4 text-sm text-slate-300">
-            Ovo je baza za međuservisne pozive: Traffic Police će “čitati” vozila/vozače preko MUP
-            servisa umesto da kuca UUID ručno.
-          </div>
-        </div>
       </div>
 
       {/* navigation */}
@@ -196,7 +181,6 @@ export default function MupVehiclesPage() {
             ["drivers", "Vozači"],
             ["owners", "Vlasnici"],
             ["transfers", "Prenosi"],
-            ["admins", "Admini"],
           ] as Array<[Section, string]>
         ).map(([key, label]) => (
           <button
@@ -239,7 +223,7 @@ export default function MupVehiclesPage() {
             </div>
 
             <div className="grid gap-6">
-              <Card title="Pretraga po registraciji (dropdown)">
+              <Card title="Pretraga po registraciji">
                 <Select
                   label="Registracija"
                   value={selectedReg}
@@ -269,7 +253,7 @@ export default function MupVehiclesPage() {
                 )}
               </Card>
 
-              <Card title="Vozilo po JMBG vlasnika (dropdown)">
+              <Card title="Vozilo po JMBG vlasnika">
                 <Select
                   label="JMBG"
                   value={selectedJmbg}
@@ -319,7 +303,7 @@ export default function MupVehiclesPage() {
             </div>
 
             <div className="grid gap-6">
-              <Card title="Driver po ID (dropdown)">
+              <Card title="Vozac">
                 <Select
                   label="Vozač"
                   value={selectedDriverId}
@@ -344,13 +328,6 @@ export default function MupVehiclesPage() {
                     <Mono>{driverById.id}</Mono>
                   </div>
                 )}
-              </Card>
-
-              <Card title="Napomena">
-                <p className="text-sm text-slate-300">
-                  Ovo će nam omogućiti da u Traffic Police kreiranju prekršaja imamo dropdown za
-                  driver (povučen iz MUP servisa), a ne ručni UUID.
-                </p>
               </Card>
             </div>
           </>
@@ -397,24 +374,6 @@ export default function MupVehiclesPage() {
                   ))}
                 </div>
               )}
-            </Card>
-          </div>
-        )}
-
-        {active === "admins" && (
-          <div className="lg:col-span-3">
-            <Card title={`Admini (${admins.length})`}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {admins.map((a) => (
-                  <div key={a.id} className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
-                    <p className="text-sm font-semibold">
-                      {a.firstName} {a.lastName}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-300">{a.email}</p>
-                    <Mono>{a.id}</Mono>
-                  </div>
-                ))}
-              </div>
             </Card>
           </div>
         )}

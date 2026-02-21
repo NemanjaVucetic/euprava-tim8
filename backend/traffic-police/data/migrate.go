@@ -2,7 +2,7 @@ package data
 
 import (
 	"fmt"
-	"traffic-police/types"
+	"traffic-police/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -20,14 +20,14 @@ func InitDB(host, user, password, dbname string, port int) (*gorm.DB, error) {
 func AutoMigrate(db *gorm.DB) error {
 
 	err := db.AutoMigrate(
-		&types.PolicePerson{},
-		&types.Owner{},
-		&types.Vehicle{},
-		&types.Violation{},
-		&types.OwnershipTransfer{},
-		&types.Driver{},
-		&types.Fine{},
-		&types.User{},
+		&models.PoliceProfile{},
+		&models.Owner{},
+		&models.Vehicle{},
+		&models.Violation{},
+		&models.OwnershipTransfer{},
+		&models.Driver{},
+		&models.Fine{},
+		&models.User{},
 	)
 	if err != nil {
 		return err

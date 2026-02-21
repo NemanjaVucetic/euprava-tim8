@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { trafficPoliceApi } from "../api/queries";
 import Select from "../components/Select";
-import type { PolicePerson, Rank } from "../types/api";
+import { formatRank, type PolicePerson, type Rank } from "../types/api";
 
 export default function PoliceManagementPage() {
     const [police, setPolice] = useState<PolicePerson[]>([]);
@@ -17,9 +17,9 @@ export default function PoliceManagementPage() {
 
     const rankOptions = useMemo(
         () => [
-            { value: "LOW" as Rank, label: "LOW" },
-            { value: "MEDIUM" as Rank, label: "MEDIUM" },
-            { value: "HIGH" as Rank, label: "HIGH" },
+            { value: "LOW" as Rank, label: "Policajac" },
+            { value: "MEDIUM" as Rank, label: "Narednik" },
+            { value: "HIGH" as Rank, label: "Inspektor" },
         ],
         []
     );
@@ -113,7 +113,7 @@ export default function PoliceManagementPage() {
                                             {p.firstName} {p.lastName}
                                         </p>
                                         <p className="text-xs text-slate-400">
-                                            {p.rank} • {p.email}
+                                            ({formatRank(p.rank)}) • {p.email}
                                         </p>
                                         <p className="mt-1 text-xs">
                                             Status:{" "}

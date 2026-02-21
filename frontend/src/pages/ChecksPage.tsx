@@ -76,14 +76,14 @@ export default function ChecksPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-bold">Security & Logic Checks</h1>
-        <p className="text-slate-400 text-sm">Verify ownership and analyze driver risk history.</p>
+        <h1 className="text-2xl font-bold">Provere</h1>
+        <p className="text-slate-400 text-sm">Provera Vlasništva i analiza rizika vozaca.</p>
       </header>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* SECTION 1: VEHICLE VERIFICATION */}
         <section className="rounded-2xl border border-slate-800 bg-white/5 p-6">
-          <h2 className="text-lg font-semibold mb-4">Provera Vlasništva (Inter-Service)</h2>
+          <h2 className="text-lg font-semibold mb-4">Provera Vlasništva</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-xs text-slate-400 mb-1">Izaberi Vozilo</label>
@@ -133,7 +133,7 @@ export default function ChecksPage() {
 
         {/* SECTION 2: DRIVER RISK REPORT */}
         <section className="rounded-2xl border border-slate-800 bg-white/5 p-6">
-          <h2 className="text-lg font-semibold mb-4">Analiza Rizika Vozača (Aggregation)</h2>
+          <h2 className="text-lg font-semibold mb-4">Analiza Rizika Vozača</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-xs text-slate-400 mb-1">Izaberi Vozača</label>

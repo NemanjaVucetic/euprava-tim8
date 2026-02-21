@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { mupVehiclesApi, trafficPoliceApi } from "../api/queries";
 import Select from "../components/Select";
-import type {
-  PolicePerson,
-  TypeOfViolation,
-  Violation,
-  Vehicle,
-  Driver,
+import {
+  type PolicePerson,
+  type TypeOfViolation,
+  type Violation,
+  type Vehicle,
+  type Driver,
+  formatRank,
+  formatViolation,
 } from "../types/api";
 
 function fmtDate(iso: string) {
@@ -19,11 +21,11 @@ function fmtDate(iso: string) {
 type CreateViolationResponse =
   | Violation
   | {
-      violation: Violation;
-      vehicle?: any;
-      driver?: any;
-      warning?: string;
-    };
+    violation: Violation;
+    vehicle?: any;
+    driver?: any;
+    warning?: string;
+  };
 
 export default function ViolationsPage() {
   const [violations, setViolations] = useState<Violation[]>([]);
@@ -45,6 +47,8 @@ export default function ViolationsPage() {
   const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 16));
   const [location, setLocation] = useState("");
 
+
+
   // NOTE: driverId = MUP driver UUID, vehicleId = registration string
   const [driverId, setDriverId] = useState("");
   const [vehicleRegistration, setVehicleRegistration] = useState("");
@@ -54,9 +58,9 @@ export default function ViolationsPage() {
 
   const typeOptions = useMemo(
     () => [
-      { value: "MINOR" as TypeOfViolation, label: "MINOR" },
-      { value: "MAJOR" as TypeOfViolation, label: "MAJOR" },
-      { value: "CRITICAL" as TypeOfViolation, label: "CRITICAL" },
+      { value: "MINOR" as TypeOfViolation, label: "Mali" },
+      { value: "MAJOR" as TypeOfViolation, label: "Veliki" },
+      { value: "CRITICAL" as TypeOfViolation, label: "Kritican" },
     ],
     []
   );
@@ -65,7 +69,7 @@ export default function ViolationsPage() {
     () =>
       police.map((p) => ({
         value: p.id,
-        label: `${p.firstName} ${p.lastName} • ${p.rank}${p.isSuspended ? " (SUSP)" : ""}`,
+        label: `${p.firstName} ${p.lastName} • ${formatRank(p.rank)}${p.isSuspended ? " (SUSP)" : ""}`,
       })),
     [police]
   );
@@ -84,9 +88,8 @@ export default function ViolationsPage() {
     () =>
       mupDrivers.map((d) => ({
         value: d.id,
-        label: `${d.owner?.firstName ?? "-"} ${d.owner?.lastName ?? "-"} • points: ${
-          d.numberOfViolationPoints
-        }${d.isSuspended ? " (SUSP)" : ""}`,
+        label: `${d.owner?.firstName ?? "-"} ${d.owner?.lastName ?? "-"} • points: ${d.numberOfViolationPoints
+          }${d.isSuspended ? " (SUSP)" : ""}`,
       })),
     [mupDrivers]
   );
@@ -213,7 +216,7 @@ export default function ViolationsPage() {
           <div>
             <h2 className="text-lg font-semibold">Prekršaji</h2>
             <p className="mt-1 text-sm text-slate-400">
-              Lista + detalji. Kreiranje koristi MUP dropdown (driver/vehicle) + policajac.
+              Detalji
             </p>
           </div>
 
@@ -243,7 +246,6 @@ export default function ViolationsPage() {
             value={driverFilter}
             onChange={(e) => setDriverFilter(e.target.value)}
             className="rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-            placeholder="Filter po driverId (MUP UUID) — prazno = svi"
           />
           <button
             onClick={searchByDriver}
@@ -267,14 +269,13 @@ export default function ViolationsPage() {
                   <button
                     key={v.id}
                     onClick={() => openDetails(v.id)}
-                    className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition ${
-                      selected?.id === v.id
-                        ? "border-indigo-500/60 bg-indigo-500/10"
-                        : "border-slate-800 bg-white/5 hover:bg-white/10"
-                    }`}
+                    className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition ${selected?.id === v.id
+                      ? "border-indigo-500/60 bg-indigo-500/10"
+                      : "border-slate-800 bg-white/5 hover:bg-white/10"
+                      }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold">{v.typeOfViolation}</span>
+                      <span className="font-semibold">{formatViolation(v.typeOfViolation)}</span>
                       <span className="text-xs text-slate-500">{fmtDate(v.date)}</span>
                     </div>
                     <div className="mt-1 text-xs text-slate-400">{v.location}</div>
@@ -406,11 +407,6 @@ export default function ViolationsPage() {
           >
             {creating ? "Kreiram..." : "Kreiraj"}
           </button>
-
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-3 text-xs text-slate-400">
-            Backend radi: proveru vozila (registracija), proveru vozača (blok ako suspendovan),
-            automatske poene i auto-suspend.
-          </div>
         </div>
       </aside>
     </div>

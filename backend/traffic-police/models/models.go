@@ -1,7 +1,10 @@
 package models
 
 import (
+	"bytes"
+	"encoding/json"
 	"math/rand"
+	"net/http"
 	"time"
 
 	"gorm.io/gorm"
@@ -27,11 +30,8 @@ func generateID(n int) string {
 }
 
 func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {
-	// Seed the random generator so it doesn't produce the same ID every time
-	rand.Seed(time.Now().UnixNano())
-
+	rand.Seed(time.Now().UnixNano()) //nolint:staticcheck
 	if b.ID == "" {
-		// Generates a random 10-character string ID
 		b.ID = generateID(10)
 	}
 	return nil
@@ -57,8 +57,16 @@ const (
 	RankHigh   Rank = "HIGH"
 )
 
+type Role string
+
+const (
+	RoleCitizen Role = "CITIZEN"
+	RoleMup     Role = "MUP"
+	RoleTraffic Role = "TRAFFIC"
+)
+
 //
-// ===== Owner (OwnerDTO) =====
+// ===== DB Models =====
 //
 
 type Owner struct {
@@ -68,39 +76,24 @@ type Owner struct {
 	Address   string `json:"address"`
 	JMBG      string `json:"jmbg" gorm:"uniqueIndex"`
 	Email     string `json:"email"`
+	UserID    string `json:"userId" gorm:"uniqueIndex"`
 }
-
-//
-// ===== Driver (DriverIDDTO -> DB model) =====
-//
 
 type Driver struct {
 	BaseModel
 	IsSuspended             bool   `json:"isSuspended"`
 	NumberOfViolationPoints int    `json:"numberOfViolationPoints"`
 	Picture                 string `json:"picture"`
-
-	OwnerID string `json:"ownerId" gorm:"index"`
-	Owner   Owner  `json:"owner" gorm:"foreignKey:OwnerID;references:ID"`
+	OwnerID                 string `json:"ownerId" gorm:"index"`
+	Owner                   Owner  `json:"owner" gorm:"foreignKey:OwnerID;references:ID"`
 }
 
-//
-// ===== PolicePerson =====
-//
-
-type PolicePerson struct {
-	BaseModel
-	FirstName   string `json:"firstName"`
-	LastName    string `json:"lastName"`
-	Rank        Rank   `json:"rank" gorm:"type:text"`
-	IsSuspended bool   `json:"isSuspended"`
-	Email       string `json:"email" gorm:"uniqueIndex"`
-	Password    string `json:"password"`
+type PoliceProfile struct {
+	FirstName   string `json:"firstName"   gorm:"column:first_name"`
+	LastName    string `json:"lastName"    gorm:"column:last_name"`
+	Rank        Rank   `json:"rank"        gorm:"column:rank;type:text"`
+	IsSuspended bool   `json:"isSuspended" gorm:"column:is_suspended"`
 }
-
-//
-// ===== Vehicle (VehicleDTO -> DB model) =====
-//
 
 type Vehicle struct {
 	BaseModel
@@ -110,29 +103,19 @@ type Vehicle struct {
 	Year         int    `json:"year"`
 	Color        string `json:"color"`
 	IsStolen     bool   `json:"isStolen"`
-
-	OwnerID string `json:"ownerId" gorm:"index"`
-	Owner   Owner  `json:"owner" gorm:"foreignKey:OwnerID;references:ID"`
+	OwnerID      string `json:"ownerId" gorm:"index"`
+	Owner        Owner  `json:"owner" gorm:"foreignKey:OwnerID;references:ID"`
 }
-
-//
-// ===== Violation =====
-//
 
 type Violation struct {
 	BaseModel
 	TypeOfViolation TypeOfViolation `json:"typeOfViolation" gorm:"type:text"`
 	Date            time.Time       `json:"date"`
 	Location        string          `json:"location"`
-
-	DriverID  string `json:"driverId" gorm:"index"`
-	VehicleID string `json:"vehicleId" gorm:"index"`
-	PoliceID  string `json:"policeId" gorm:"index"`
+	DriverID        string          `json:"driverId" gorm:"index"`
+	VehicleID       string          `json:"vehicleId" gorm:"index"`
+	PoliceID        string          `json:"policeId" gorm:"index"`
 }
-
-//
-// ===== Fine =====
-//
 
 type Fine struct {
 	BaseModel
@@ -141,10 +124,6 @@ type Fine struct {
 	Date        time.Time `json:"date"`
 	ViolationID string    `json:"violationId" gorm:"index"`
 }
-
-//
-// ===== OwnershipTransfer (OwnershipTransferDTO -> DB model) =====
-//
 
 type OwnershipTransfer struct {
 	BaseModel
@@ -157,17 +136,32 @@ type OwnershipTransfer struct {
 	DateOfTransfer time.Time `json:"dateOfTransfer"`
 }
 
+type UserRole string
+
+const (
+	UserRoleCitizen UserRole = "CITIZEN"
+	UserRoleMup     UserRole = "MUP"
+	UserRoleTraffic UserRole = "TRAFFIC"
+)
+
+type User struct {
+	BaseModel
+	Email    string   `json:"email"    gorm:"uniqueIndex"`
+	Password string   `json:"password"`
+	Role     UserRole `json:"role"     gorm:"type:text"`
+
+	PoliceProfile *PoliceProfile `json:"policeProfile,omitempty" gorm:"embedded"`
+}
+
 //
-// ===== Requests / DTOs (ne migriraju se!) =====
+// ===== Request / DTO structs (ne migriraju se) =====
 //
 
-// Java: VehicleVerificationRequest
 type VehicleVerificationRequest struct {
 	Registration string `json:"registration"`
 	JMBG         string `json:"jmbg"`
 }
 
-// Java: SearchVehicleRequest
 type SearchVehicleRequest struct {
 	Mark         string `json:"mark"`
 	Model        string `json:"model"`
@@ -175,19 +169,110 @@ type SearchVehicleRequest struct {
 	Registration string `json:"registration"`
 }
 
-// Java: SuspendDriverIdRequest
 type SuspendDriverIdRequest struct {
 	DriverID                string `json:"driverId"`
 	NumberOfViolationPoints int    `json:"numberOfViolationPoints"`
 }
 
-// Java: NewViolationRequest { Violation violation; DriverIDDTO driverId; }
 type NewViolationRequest struct {
 	Violation Violation `json:"violation"`
 	DriverID  DriverRef `json:"driverId"`
 }
 
-// driverId dolazi kao objekat { "id": "..." }
 type DriverRef struct {
 	ID string `json:"id"`
+}
+
+type LoginReq struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginResp struct {
+	AccessToken string `json:"access_token"`
+	ExpiresIn   int64  `json:"expires_in"`
+	TokenType   string `json:"token_type"`
+}
+
+//
+// ===== MUP inter-service DTOs =====
+//
+
+type MupOwner struct {
+	ID        string `json:"id"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	JMBG      string `json:"jmbg"`
+	Email     string `json:"email"`
+	Address   string `json:"address"`
+}
+
+type MupVehicle struct {
+	ID           string   `json:"id"`
+	Registration string   `json:"registration"`
+	Mark         string   `json:"mark"`
+	Model        string   `json:"model"`
+	Year         int      `json:"year"`
+	Color        string   `json:"color"`
+	IsStolen     bool     `json:"isStolen"`
+	Owner        MupOwner `json:"owner"`
+}
+
+type MupDriver struct {
+	ID                      string   `json:"id"`
+	IsSuspended             bool     `json:"isSuspended"`
+	NumberOfViolationPoints int      `json:"numberOfViolationPoints"`
+	Picture                 string   `json:"picture"`
+	Owner                   MupOwner `json:"owner"`
+}
+
+//
+// ===== MUP HTTP helpers =====
+//
+
+func MupGet[T any](client *http.Client, baseURL, path string) (*T, int, error) {
+	req, err := http.NewRequest("GET", baseURL+path, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return nil, res.StatusCode, nil
+	}
+
+	var out T
+	if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
+		return nil, res.StatusCode, err
+	}
+	return &out, res.StatusCode, nil
+}
+
+func MupPatchJSON[T any](client *http.Client, baseURL, path string, body any) (*T, int, error) {
+	b, _ := json.Marshal(body)
+	req, err := http.NewRequest("PATCH", baseURL+path, bytes.NewReader(b))
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return nil, res.StatusCode, nil
+	}
+
+	var out T
+	if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
+		return nil, res.StatusCode, err
+	}
+	return &out, res.StatusCode, nil
 }

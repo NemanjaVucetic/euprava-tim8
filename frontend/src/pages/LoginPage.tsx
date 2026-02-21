@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { authApi } from "../api/queries";
+import { authApi, type LoginResponse } from "../api/queries";
 
 type Props = {
   onLogin: (email: string) => void;
@@ -70,10 +70,11 @@ export default function LoginPage({ onLogin }: Props) {
         password,
       });
 
-      const token = (res as any)?.accessToken || (res as any)?.token;
+      const token = (res as LoginResponse)?.accessToken || (res as LoginResponse)?.token;
       if (token) localStorage.setItem("accessToken", token);
 
       localStorage.setItem("email", email.trim());
+      localStorage.setItem("role", res.role);
 
       onLogin(email.trim());
     } catch (err: any) {

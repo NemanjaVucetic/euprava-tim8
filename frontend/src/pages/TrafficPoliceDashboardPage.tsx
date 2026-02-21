@@ -27,16 +27,19 @@ export default function TrafficPoliceDashboardPage() {
           </Link>
 
           <Link
-            to="/admin/users"
+            to="/mup"
             className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 hover:bg-white/5"
           >
-            <p className="text-sm font-semibold">Korisnici & Role</p>
-            <p className="mt-1 text-sm text-slate-400">Dodela role iz liste korisnika.</p>
+            <p className="text-sm font-semibold">Vozila i vozaci</p>
+            <p className="mt-1 text-sm text-slate-400">Pregledajte vozila MUP-a.</p>
           </Link>
-
-          <div className="rounded-2xl border border-slate-800 bg-gradient-to-r from-indigo-500/10 to-cyan-500/10 p-4 text-sm text-slate-300">
-            Tip: prvo kreiraj policajca, pa onda prekršaj sa dropdown-om policajca.
-          </div>
+          <Link
+            to="/traffic/checks"
+            className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 hover:bg-white/5"
+          >
+            <p className="text-sm font-semibold">Provere</p>
+            <p className="mt-1 text-sm text-slate-400">Proverite vozila i vozace.</p>
+          </Link>
         </div>
       </section>
 
