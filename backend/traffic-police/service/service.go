@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"traffic-police/models"
@@ -39,6 +40,33 @@ func (s *Store) TogglePoliceSuspend(id string, out *models.PolicePerson) error {
 		return err
 	}
 	out.IsSuspended = !out.IsSuspended
+	return s.DB.Save(out).Error
+}
+
+var rankOrder = []models.Rank{"LOW", "MEDIUM", "HIGH"}
+
+func (s *Store) ChangePoliceRank(id string, out *models.PolicePerson, upgrade bool) error {
+	if err := s.GetPolice(id, out); err != nil {
+		return err
+	}
+	idx := -1
+	for i, r := range rankOrder {
+		if r == out.Rank {
+			idx = i
+			break
+		}
+	}
+	if upgrade {
+		if idx >= len(rankOrder)-1 {
+			return fmt.Errorf("already max rank")
+		}
+		out.Rank = rankOrder[idx+1]
+	} else {
+		if idx <= 0 {
+			return fmt.Errorf("already min rank")
+		}
+		out.Rank = rankOrder[idx-1]
+	}
 	return s.DB.Save(out).Error
 }
 

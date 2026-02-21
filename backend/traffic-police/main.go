@@ -168,6 +168,24 @@ func main() {
 		c.JSON(200, p)
 	})
 
+	r.PATCH("/police/:id/upgrade-rank", func(c *gin.Context) {
+		var p models.PolicePerson
+		if err := store.ChangePoliceRank(c.Param("id"), &p, true); err != nil {
+			c.JSON(404, gin.H{"error": "not found or already max rank"})
+			return
+		}
+		c.JSON(200, p)
+	})
+
+	r.PATCH("/police/:id/downgrade-rank", func(c *gin.Context) {
+		var p models.PolicePerson
+		if err := store.ChangePoliceRank(c.Param("id"), &p, false); err != nil {
+			c.JSON(400, gin.H{"error": "not found or already min rank"})
+			return
+		}
+		c.JSON(200, p)
+	})
+
 	// ===== VEHICLE VERIFY (inter-service) =====
 	r.POST("/vehicles/verify", func(c *gin.Context) {
 		var req models.VehicleVerificationRequest

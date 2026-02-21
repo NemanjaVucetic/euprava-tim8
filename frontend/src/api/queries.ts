@@ -102,40 +102,52 @@ export const authAdminApi = {
 
 export const trafficPoliceApi = {
   // ===== Violations =====
-  getViolations: () => apiFetch(`/api/traffic-police/violations`),
-  getViolationById: (id: string) => apiFetch(`/api/traffic-police/violations/${id}`),
+  getViolations: () => apiFetch<any[]>(`/api/traffic-police/violations`),
+  getViolationById: (id: string) => apiFetch<any>(`/api/traffic-police/violations/${id}`),
   createViolation: (data: any) =>
-    apiFetch(`/api/traffic-police/violations`, { method: "POST", body: JSON.stringify(data) }),
+    apiFetch<any>(`/api/traffic-police/violations`, { method: "POST", body: JSON.stringify(data) }),
   getViolationsByDriver: (driverId: string) =>
-    apiFetch(`/api/traffic-police/violations/driver/${driverId}`),
+    apiFetch<any[]>(`/api/traffic-police/violations/driver/${driverId}`),
+
+  // ===== NEW: Driver Report (This was missing!) =====
+  getDriverReport: (driverId: string) =>
+    apiFetch<{ totalViolations: number; riskLevel: string }>(
+      `/api/traffic-police/drivers/${driverId}/report`
+    ),
 
   // ===== Police =====
-  getPolice: () => apiFetch(`/api/traffic-police/police`),
+  getPolice: () => apiFetch<any[]>(`/api/traffic-police/police`),
   createPolice: (data: any) =>
-    apiFetch(`/api/traffic-police/police`, { method: "POST", body: JSON.stringify(data) }),
+    apiFetch<any>(`/api/traffic-police/police`, { method: "POST", body: JSON.stringify(data) }),
   togglePoliceSuspend: (id: string) =>
-    apiFetch(`/api/traffic-police/police/${id}/toggle-suspend`, { method: "PATCH" }),
+    apiFetch<any>(`/api/traffic-police/police/${id}/toggle-suspend`, { method: "PATCH" }),
+  upgradePoliceRank: (id: string) =>
+    apiFetch<any>(`/api/traffic-police/police/${id}/upgrade-rank`, { method: "PATCH" }),
+  downgradePoliceRank: (id: string) =>
+    apiFetch<any>(`/api/traffic-police/police/${id}/downgrade-rank`, { method: "PATCH" }),
 
   // ===== Owners =====
-  getOwners: () => apiFetch(`/api/traffic-police/owners`),
-  getOwnerById: (id: string) => apiFetch(`/api/traffic-police/owners/${id}`),
+  getOwners: () => apiFetch<any[]>(`/api/traffic-police/owners`),
+  getOwnerById: (id: string) => apiFetch<any>(`/api/traffic-police/owners/${id}`),
   createOwner: (data: any) =>
-    apiFetch(`/api/traffic-police/owners`, { method: "POST", body: JSON.stringify(data) }),
+    apiFetch<any>(`/api/traffic-police/owners`, { method: "POST", body: JSON.stringify(data) }),
 
   // ===== Vehicles =====
-  getVehicles: () => apiFetch(`/api/traffic-police/vehicles`),
-  getVehicleById: (id: string) => apiFetch(`/api/traffic-police/vehicles/${id}`),
+  getVehicles: () => apiFetch<any[]>(`/api/traffic-police/vehicles`),
+  getVehicleById: (id: string) => apiFetch<any>(`/api/traffic-police/vehicles/${id}`),
   createVehicle: (data: any) =>
-    apiFetch(`/api/traffic-police/vehicles`, { method: "POST", body: JSON.stringify(data) }),
+    apiFetch<any>(`/api/traffic-police/vehicles`, { method: "POST", body: JSON.stringify(data) }),
   searchVehicles: (data: any) =>
-    apiFetch(`/api/traffic-police/vehicles/search`, { method: "POST", body: JSON.stringify(data) }),
+    apiFetch<any>(`/api/traffic-police/vehicles/search`, { method: "POST", body: JSON.stringify(data) }),
   verifyVehicle: (data: any) =>
-    apiFetch(`/api/traffic-police/vehicles/verify`, { method: "POST", body: JSON.stringify(data) }),
+    apiFetch<{ valid: boolean; reason?: string }>(`/api/traffic-police/vehicles/verify`, {
+      method: "POST",
+      body: JSON.stringify(data)
+    }),
 
   // ===== Transfers =====
-  getTransfers: () => apiFetch(`/api/traffic-police/transfers`),
+  getTransfers: () => apiFetch<any[]>(`/api/traffic-police/transfers`),
   createTransfer: (data: any) =>
-    apiFetch(`/api/traffic-police/transfers`, { method: "POST", body: JSON.stringify(data) }),
+    apiFetch<any>(`/api/traffic-police/transfers`, { method: "POST", body: JSON.stringify(data) }),
 };
-
 

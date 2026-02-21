@@ -14,6 +14,7 @@ import PoliceManagementPage from "./pages/PoliceManagementPage";
 import ViolationsPage from "./pages/ViolationsPage";
 import UsersRolesPage from "./pages/UsersRolesPage";
 import MupVehiclesPage from "./pages/MupVehicles";
+import ChecksPage from "./pages/ChecksPage";
 
 function getStoredUser() {
   const email = localStorage.getItem("email");
@@ -59,8 +60,8 @@ function Layout({
               <Link to="/traffic/violations" className="hover:text-white">
                 Prekršaji
               </Link>
-              <Link to="/admin/users" className="hover:text-white">
-                Admin
+              <Link to="/traffic/checks" className="hover:text-white">
+                Provere
               </Link>
             </nav>
           </div>
@@ -130,6 +131,7 @@ export default function App() {
                   <Route path="/traffic/police" element={<PoliceManagementPage />} />
                   <Route path="/traffic/violations" element={<ViolationsPage />} />
                   <Route path="/admin/users" element={<UsersRolesPage />} />
+                  <Route path="/traffic/checks" element={<ChecksPage />} />
                   <Route path="*" element={<Navigate to="/traffic" replace />} />
                 </Routes>
               </Layout>
