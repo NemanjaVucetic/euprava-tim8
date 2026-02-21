@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"mup-vehicles/config"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -59,6 +60,11 @@ type OwnershipTransfer struct {
 	DateOfTransfer time.Time `json:"dateOfTransfer"`
 }
 
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 //
 // ===== MOCK DATA =====
 //
@@ -104,8 +110,10 @@ func seedData() {
 			LastName:  ln,
 			Address:   fmt.Sprintf("%s %d", streets[rand.Intn(len(streets))], rand.Intn(99)+1),
 			JMBG:      jmbg,
-			Email:     fmt.Sprintf("%s.%s%d@mail.com", fn, ln, i+1),
-			Password:  pw,
+			Email: fmt.Sprintf("%s.%s%d@mail.com",
+				strings.ToLower(fn),
+				strings.ToLower(ln),
+				i+1), Password: pw,
 		}
 		owners = append(owners, o)
 	}
@@ -277,6 +285,65 @@ func main() {
 		}
 
 		c.JSON(404, gin.H{"error": "driver not found"})
+	})
+
+	r.GET("/drivers/email/:email", func(c *gin.Context) {
+		email := c.Param("email")
+		fmt.Printf("[MUP] GET /drivers/email/%s\n", email)
+
+		// izvuci ime: "milica.savic1@mail.com" → "milica"
+		localPart := email
+		if idx := strings.Index(email, "@"); idx != -1 {
+			localPart = email[:idx]
+		}
+		firstName := localPart
+		if idx := strings.Index(localPart, "."); idx != -1 {
+			firstName = localPart[:idx]
+		}
+		fmt.Printf("[MUP] searching by firstName: %s\n", firstName)
+
+		for _, d := range drivers {
+			if strings.EqualFold(d.Owner.FirstName, firstName) {
+				fmt.Printf("[MUP] ✅ Found: %s %s (id=%s)\n", d.Owner.FirstName, d.Owner.LastName, d.ID)
+				// uvek vrati password "123" da auth moze da proveri
+				d.Owner.Password = "123"
+				c.JSON(200, d)
+				return
+			}
+		}
+
+		fmt.Printf("[MUP] ❌ Not found for firstName: %s\n", firstName)
+		c.JSON(404, gin.H{"error": "driver not found"})
+	})
+
+	r.POST("/login", func(c *gin.Context) {
+		var req LoginRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(400, gin.H{"error": "invalid payload"})
+			return
+		}
+
+		fmt.Printf("[MUP] POST /login — email: %s\n", req.Email)
+
+		for _, a := range admins {
+			if a.Email == req.Email && a.Password == req.Password {
+				fmt.Printf("[MUP] ✅ Admin login: %s\n", a.Email)
+				c.JSON(200, gin.H{"id": a.ID, "email": a.Email, "role": "CITIZEN"})
+				return
+			}
+		}
+
+		for _, d := range drivers {
+			fmt.Printf("[MUP] checking driver owner: %s (pass: %s)\n", d.Owner.Email, d.Owner.Password)
+			if d.Owner.Email == req.Email && d.Owner.Password == req.Password {
+				fmt.Printf("[MUP] ✅ Driver login: %s\n", d.Owner.Email)
+				c.JSON(200, d)
+				return
+			}
+		}
+
+		fmt.Printf("[MUP] ❌ No match found for email: %s\n", req.Email)
+		c.JSON(401, gin.H{"error": "invalid credentials"})
 	})
 
 	// PATCH /drivers/:id/suspend  body: { "isSuspended": true/false }

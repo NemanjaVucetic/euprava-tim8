@@ -4,6 +4,7 @@ import (
 	"auth/types"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -40,11 +41,12 @@ func mupGet[T any](client *http.Client, baseURL, path string) (*T, int, error) {
 
 func getUserByEmail(db *gorm.DB, email string) (*types.User, error) {
 	var u types.User
-	if err := db.Where("email = ?", email).First(&u).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil // not found, not an error
-		}
-		return nil, err
+	result := db.Where("email = ?", email).Limit(1).Find(&u)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil // nije greška, samo ne postoji
 	}
 	return &u, nil
 }
@@ -69,17 +71,12 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		role := in.Role
-		if role == "" {
-			role = types.RoleCitizen
-		}
-
 		u := types.User{
 			Email:     in.Email,
 			Password:  string(hash),
 			FirstName: in.FirstName,
 			LastName:  in.LastName,
-			Role:      role,
+			Role:      types.RoleCitizen,
 		}
 
 		if err := db.WithContext(c.Request.Context()).Create(&u).Error; err != nil {
@@ -131,22 +128,27 @@ func login(db *gorm.DB, issuer string, secret []byte, httpClient *http.Client, m
 			role = localUser.Role
 
 		} else {
-			// Step 2: not in local DB — hit MUP service directly
+			fmt.Printf("[AUTH] User not in local DB, calling MUP: %s\n", email)
+
 			mupDriver, dSt, mupErr := mupGet[types.MupDriver](httpClient, mupBaseURL, "/drivers/email/"+email)
+			fmt.Printf("[AUTH] MUP response — status: %d, err: %v, driver: %v\n", dSt, mupErr, mupDriver != nil)
+
 			if mupErr != nil || dSt != http.StatusOK || mupDriver == nil {
+				fmt.Printf("[AUTH] ❌ MUP lookup failed\n")
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 				return
 			}
 
-			// MUP users authenticate with password "123"
 			if password != "123" {
+				fmt.Printf("[AUTH] ❌ Password mismatch for MUP user\n")
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 				return
 			}
 
-			// Transient user — not saved to DB
+			fmt.Printf("[AUTH] ✅ MUP login success: %s\n", mupDriver.Owner.Email)
+
 			finalUser = &types.User{
-				Email:     mupDriver.Owner.Email,
+				Email:     email,
 				FirstName: mupDriver.Owner.FirstName,
 				LastName:  mupDriver.Owner.LastName,
 				Role:      types.RoleCitizen,

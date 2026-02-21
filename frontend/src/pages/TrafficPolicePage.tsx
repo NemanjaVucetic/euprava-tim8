@@ -259,11 +259,10 @@ export default function TrafficPolicePage() {
                   <button
                     key={v.id}
                     onClick={() => openDetails(v.id)}
-                    className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition ${
-                      selectedViolation?.id === v.id
+                    className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition ${selectedViolation?.id === v.id
                         ? "border-indigo-500/60 bg-indigo-500/10"
                         : "border-slate-800 bg-white/5 hover:bg-white/10"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-semibold">{v.typeOfViolation}</span>
@@ -407,7 +406,7 @@ export default function TrafficPolicePage() {
                 <option value="">-- izaberi policajca --</option>
                 {police.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.firstName} {p.lastName} • {p.rank} {p.isSuspended ? "(SUSP)" : ""}
+                    {p.policeProfile.firstName} {p.policeProfile.lastName} • {p.policeProfile.rank} {p.policeProfile.isSuspended ? "(SUSP)" : ""}
                   </option>
                 ))}
               </select>
@@ -506,15 +505,15 @@ export default function TrafficPolicePage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold">
-                        {p.firstName} {p.lastName}
+                        {p.policeProfile.firstName} {p.policeProfile.lastName}
                       </p>
                       <p className="text-xs text-slate-400">
-                        {p.rank} • {p.email}
+                        {p.policeProfile.rank} • {p.email}
                       </p>
                       <p className="mt-1 text-xs">
                         Status:{" "}
-                        <span className={p.isSuspended ? "text-red-300" : "text-emerald-300"}>
-                          {p.isSuspended ? "SUSPENDOVAN" : "AKTIVAN"}
+                        <span className={p.policeProfile.isSuspended ? "text-red-300" : "text-emerald-300"}>
+                          {p.policeProfile.isSuspended ? "SUSPENDOVAN" : "AKTIVAN"}
                         </span>
                       </p>
                     </div>

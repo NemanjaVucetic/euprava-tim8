@@ -87,7 +87,6 @@ export type OwnershipTransfer = BaseModel & {
 // TRAFFIC POLICE SERVICE
 // ======================
 
-export type Rank = "LOW" | "MEDIUM" | "HIGH"
 
 export function formatRank(rank: Rank): string {
   switch (rank) {
@@ -100,15 +99,6 @@ export function formatRank(rank: Rank): string {
     default:
       return rank
   }
-}
-
-export type PolicePerson = BaseModel & {
-  firstName: string
-  lastName: string
-  rank: Rank
-  isSuspended: boolean
-  email: string
-  password: string
 }
 
 export type TypeOfViolation = "MINOR" | "MAJOR" | "CRITICAL"
@@ -178,4 +168,37 @@ export type DriverRef = {
 export type NewViolationRequest = {
   violation: Omit<Violation, "id"> & Partial<Pick<Violation, "id">>
   driverId: DriverRef
+}
+
+// ===== Enums =====
+
+export type Rank = "LOW" | "MEDIUM" | "HIGH";
+export type UserRole = "CITIZEN" | "MUP" | "TRAFFIC";
+
+// ===== Police =====
+
+export interface PoliceProfile {
+  firstName: string;
+  lastName:  string;
+  rank:      Rank;
+  isSuspended: boolean;
+}
+
+export interface PolicePerson {
+  id:           string;
+  createdAt:    string;
+  updatedAt:    string;
+  email:        string;
+  password:     string;
+  role:         UserRole;
+  policeProfile: PoliceProfile;
+}
+
+export interface CreatePoliceRequest {
+  email:       string;
+  password:    string;
+  firstName:   string;
+  lastName:    string;
+  rank:        Rank;
+  isSuspended: boolean;
 }

@@ -62,6 +62,7 @@ type MupOwner struct {
 	Address   string `json:"address"`
 	JMBG      string `json:"jmbg"`
 	Email     string `json:"email"`
+	Password  string `json:"password"`
 }
 
 type MupVehicle struct {

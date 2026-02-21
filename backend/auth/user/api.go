@@ -12,7 +12,7 @@ import (
 func WithUserAPI(r *gin.RouterGroup, db *gorm.DB) {
 	secret := []byte(os.Getenv("JWT_SECRET"))
 	issuer := os.Getenv("ISSUER")
-	mupBaseURL := "http://mup-vehicles-service:8080"
+	mupBaseURL := "http://mup-vehicles-service:8081"
 
 	httpClient := &http.Client{Timeout: 3 * time.Second}
 

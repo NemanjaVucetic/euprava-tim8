@@ -69,7 +69,7 @@ export default function ViolationsPage() {
     () =>
       police.map((p) => ({
         value: p.id,
-        label: `${p.firstName} ${p.lastName} • ${formatRank(p.rank)}${p.isSuspended ? " (SUSP)" : ""}`,
+        label: `${p.policeProfile.firstName} ${p.policeProfile.lastName} • ${formatRank(p.policeProfile.rank)}${p.policeProfile.isSuspended ? " (SUSP)" : ""}`,
       })),
     [police]
   );
