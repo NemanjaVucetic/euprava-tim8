@@ -126,6 +126,9 @@ func login(db *gorm.DB, issuer string, secret []byte, httpClient *http.Client, m
 			}
 			finalUser = localUser
 			role = localUser.Role
+			if role == "" {
+				role = types.RoleCitizen
+			}
 
 		} else {
 			fmt.Printf("[AUTH] User not in local DB, calling MUP: %s\n", email)
@@ -156,6 +159,12 @@ func login(db *gorm.DB, issuer string, secret []byte, httpClient *http.Client, m
 			role = types.RoleCitizen
 		}
 
+		switch role {
+		case types.RoleCitizen, types.RoleMup, types.RoleTraffic:
+		default:
+			role = types.RoleCitizen
+		}
+
 		// Step 3: issue JWT
 		now := time.Now()
 		exp := now.Add(15 * time.Minute)
@@ -178,6 +187,7 @@ func login(db *gorm.DB, issuer string, secret []byte, httpClient *http.Client, m
 		}
 
 		c.JSON(http.StatusOK, types.LoginResp{
+			Role:        string(role),
 			AccessToken: signed,
 			ExpiresIn:   int64(15 * 60),
 			TokenType:   "Bearer",

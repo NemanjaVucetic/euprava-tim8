@@ -1,38 +1,49 @@
 import { useState } from "react";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-  Link,
-  useNavigate,
-} from "react-router-dom";
+import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
-import LoginPage from "./pages/LoginPage";
-import TrafficPoliceDashboardPage from "./pages/TrafficPoliceDashboardPage";
-import PoliceManagementPage from "./pages/PoliceManagementPage";
-import ViolationsPage from "./pages/ViolationsPage";
-import UsersRolesPage from "./pages/UsersRolesPage";
-import MupVehiclesPage from "./pages/MupVehicles";
-import ChecksPage from "./pages/ChecksPage";
-import MyViolationsPage from "./pages/MyViolationsPage";
 import RequireRole from "./api/RequireRole";
+import ChecksPage from "./pages/ChecksPage";
+import LoginPage from "./pages/LoginPage";
+import MupVehiclesPage from "./pages/MupVehicles";
+import MyViolationsPage from "./pages/MyViolationsPage";
+import PoliceManagementPage from "./pages/PoliceManagementPage";
+import TrafficPoliceDashboardPage from "./pages/TrafficPoliceDashboardPage";
+import UnauthorizedPage from "./pages/UnauthorizedPage";
+import UsersRolesPage from "./pages/UsersRolesPage";
+import ViolationsPage from "./pages/ViolationsPage";
+
+type AppRole = "CITIZEN" | "MUP" | "TRAFFIC";
 
 function getStoredUser() {
   const email = localStorage.getItem("email");
   return email && email.trim().length > 0 ? email : null;
 }
 
+function getStoredRole(): AppRole | null {
+  const role = (localStorage.getItem("role") || "").trim().toUpperCase();
+  if (role === "CITIZEN" || role === "MUP" || role === "TRAFFIC") return role;
+  return null;
+}
+
+function getDefaultRouteForRole(role: AppRole | null): string {
+  if (role === "CITIZEN") return "/my-violations";
+  if (role === "MUP") return "/mup";
+  return "/traffic";
+}
+
 function Layout({
   user,
+  role,
   onLogout,
   children,
 }: {
   user: string;
+  role: AppRole | null;
   onLogout: () => void;
   children: React.ReactNode;
 }) {
   const navigate = useNavigate();
+  const homeRoute = getDefaultRouteForRole(role);
 
   function handleLogout() {
     onLogout();
@@ -41,27 +52,39 @@ function Layout({
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* NAVBAR */}
       <header className="border-b border-slate-800 bg-slate-900/40">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-6">
-            <Link to="/traffic" className="font-semibold hover:text-indigo-400">
+            <Link to={homeRoute} className="font-semibold hover:text-indigo-400">
               e-Uprava
             </Link>
 
             <nav className="flex gap-4 text-sm text-slate-300">
-              <Link to="/mup" className="hover:text-white">
-                MUP Vozila
-              </Link>
-              <Link to="/traffic/police" className="hover:text-white">
-                Policija
-              </Link>
-              <Link to="/traffic/violations" className="hover:text-white">
-                Prekršaji
-              </Link>
-              <Link to="/traffic/checks" className="hover:text-white">
-                Provere
-              </Link>
+              {(role === "MUP" || role === "TRAFFIC") && (
+                <Link to="/mup" className="hover:text-white">
+                  MUP Vozila
+                </Link>
+              )}
+              {role === "TRAFFIC" && (
+                <Link to="/traffic/police" className="hover:text-white">
+                  Policija
+                </Link>
+              )}
+              {role === "TRAFFIC" && (
+                <Link to="/traffic/violations" className="hover:text-white">
+                  Prekrsaji
+                </Link>
+              )}
+              {role === "TRAFFIC" && (
+                <Link to="/traffic/checks" className="hover:text-white">
+                  Provere
+                </Link>
+              )}
+              {role === "CITIZEN" && (
+                <Link to="/my-violations" className="hover:text-white">
+                  Moji prekrsaji
+                </Link>
+              )}
             </nav>
           </div>
 
@@ -71,13 +94,12 @@ function Layout({
               onClick={handleLogout}
               className="rounded-xl border border-slate-700 bg-white/5 px-3 py-1.5 hover:bg-white/10"
             >
-              Logout
+              Odjava
             </button>
           </div>
         </div>
       </header>
 
-      {/* CONTENT */}
       <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
     </div>
   );
@@ -85,11 +107,14 @@ function Layout({
 
 export default function App() {
   const [user, setUser] = useState<string | null>(() => getStoredUser());
+  const [role, setRole] = useState<AppRole | null>(() => getStoredRole());
 
   const logout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("email");
+    localStorage.removeItem("role");
     setUser(null);
+    setRole(null);
   };
 
   const RequireAuth = ({ children }: { children: React.ReactNode }) => {
@@ -97,40 +122,91 @@ export default function App() {
     return <>{children}</>;
   };
 
+  const homeRoute = getDefaultRouteForRole(role);
+
   return (
     <BrowserRouter>
       <Routes>
-        {/* LOGIN */}
         <Route
           path="/login"
           element={
             user ? (
-              <Navigate to="/traffic" replace />
+              <Navigate to={homeRoute} replace />
             ) : (
               <LoginPage
-                onLogin={(email) => {
+                onLogin={(email, loggedInRole) => {
                   localStorage.setItem("email", email);
+                  localStorage.setItem("role", loggedInRole);
                   setUser(email);
+                  setRole(loggedInRole);
                 }}
               />
             )
           }
         />
 
-        {/* PROTECTED */}
         <Route
           path="/*"
           element={
             <RequireAuth>
-              <Layout user={user!} onLogout={logout}>
+              <Layout user={user!} role={role} onLogout={logout}>
                 <Routes>
-                  <Route path="/" element={<Navigate to="/traffic" replace />} />
-                  <Route path="/mup" element={<MupVehiclesPage />} />
-                  <Route path="/traffic" element={<TrafficPoliceDashboardPage />} />
-                  <Route path="/traffic/police" element={<PoliceManagementPage />} />
-                  <Route path="/traffic/violations" element={<ViolationsPage />} />
-                  <Route path="/admin/users" element={<UsersRolesPage />} />
-                  <Route path="/traffic/checks" element={<ChecksPage />} />
+                  <Route path="/" element={<Navigate to={homeRoute} replace />} />
+
+                  <Route
+                    path="/mup"
+                    element={
+                      <RequireRole roles={["MUP", "TRAFFIC"]}>
+                        <MupVehiclesPage />
+                      </RequireRole>
+                    }
+                  />
+
+                  <Route
+                    path="/traffic"
+                    element={
+                      <RequireRole role="TRAFFIC">
+                        <TrafficPoliceDashboardPage />
+                      </RequireRole>
+                    }
+                  />
+
+                  <Route
+                    path="/traffic/police"
+                    element={
+                      <RequireRole role="TRAFFIC">
+                        <PoliceManagementPage />
+                      </RequireRole>
+                    }
+                  />
+
+                  <Route
+                    path="/traffic/violations"
+                    element={
+                      <RequireRole role="TRAFFIC">
+                        <ViolationsPage />
+                      </RequireRole>
+                    }
+                  />
+
+                  <Route
+                    path="/admin/users"
+                    element={
+                      <RequireRole role="TRAFFIC">
+                        <UsersRolesPage />
+                      </RequireRole>
+                    }
+                  />
+
+                  <Route
+                    path="/traffic/checks"
+                    element={
+                      <RequireRole role="TRAFFIC">
+                        <ChecksPage />
+                      </RequireRole>
+                    }
+                  />
+
                   <Route
                     path="/my-violations"
                     element={
@@ -139,7 +215,9 @@ export default function App() {
                       </RequireRole>
                     }
                   />
-                  <Route path="*" element={<Navigate to="/traffic" replace />} />
+
+                  <Route path="/unauthorized" element={<UnauthorizedPage />} />
+                  <Route path="*" element={<Navigate to={homeRoute} replace />} />
                 </Routes>
               </Layout>
             </RequireAuth>

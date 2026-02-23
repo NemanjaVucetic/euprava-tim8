@@ -17,6 +17,9 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("Failed to connect to database: %v", err))
 	}
+	if err := data.AutoMigrateAndSeed(db); err != nil {
+		panic(fmt.Sprintf("Failed to migrate/seed database: %v", err))
+	}
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()

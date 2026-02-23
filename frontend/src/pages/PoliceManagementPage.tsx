@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { trafficPoliceApi } from "../api/queries";
 import Select from "../components/Select";
-import type { PolicePerson, Rank, CreatePoliceRequest } from "../types/api";
+import { type PolicePerson, type Rank, type CreatePoliceRequest, formatRank } from "../types/api";
 
 export default function PoliceManagementPage() {
   const [police, setPolice] = useState<PolicePerson[]>([]);
@@ -119,7 +119,7 @@ export default function PoliceManagementPage() {
                       {p.policeProfile.firstName} {p.policeProfile.lastName}
                     </p>
                     <p className="text-xs text-slate-400">
-                      {p.policeProfile.rank} • {p.email}
+                      {formatRank(p.policeProfile.rank)} • {p.email}
                     </p>
                     <p className="mt-1 text-xs">
                       Status:{" "}

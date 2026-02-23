@@ -34,7 +34,6 @@ export default function MupVehiclesPage() {
   const [transfers, setTransfers] = useState<OwnershipTransfer[]>([]);
   const [, setAdmins] = useState<Administrator[]>([]);
 
-  // details panels (selected)
   const [selectedReg, setSelectedReg] = useState<string>("");
   const [selectedJmbg, setSelectedJmbg] = useState<string>("");
   const [selectedDriverId, setSelectedDriverId] = useState<string>("");
@@ -45,29 +44,29 @@ export default function MupVehiclesPage() {
 
   const vehicleOptions = useMemo(
     () =>
-      vehicles.map((v) => ({
-        value: v.registration,
-        label: `${v.registration} • ${v.mark} ${v.model} (${v.year})`,
+      vehicles.map((vehicleItem) => ({
+        value: vehicleItem.registration,
+        label: `${vehicleItem.registration} - ${vehicleItem.mark} ${vehicleItem.model} (${vehicleItem.year})`,
       })),
     [vehicles]
   );
 
   const ownerOptions = useMemo(
     () =>
-      owners.map((o) => ({
-        value: o.jmbg,
-        label: `${o.jmbg} • ${o.firstName} ${o.lastName}`,
+      owners.map((ownerItem) => ({
+        value: ownerItem.jmbg,
+        label: `${ownerItem.jmbg} - ${ownerItem.firstName} ${ownerItem.lastName}`,
       })),
     [owners]
   );
 
   const driverOptions = useMemo(
     () =>
-      drivers.map((d) => ({
-        value: d.id,
-        label: `${d.owner?.firstName ?? "-"} ${d.owner?.lastName ?? "-"} • points: ${
-          d.numberOfViolationPoints
-        }${d.isSuspended ? " (SUSP)" : ""}`,
+      drivers.map((driverItem) => ({
+        value: driverItem.id,
+        label: `${driverItem.owner?.firstName ?? "-"} ${driverItem.owner?.lastName ?? "-"} - poeni: ${
+          driverItem.numberOfViolationPoints
+        }${driverItem.isSuspended ? " (SUSPENDOVAN)" : ""}`,
       })),
     [drivers]
   );
@@ -76,23 +75,23 @@ export default function MupVehiclesPage() {
     setError(null);
     setLoading(true);
     try {
-      const [h, v, d, o, t, a] = await Promise.all([
-        mupVehiclesApi.health(),
-        mupVehiclesApi.getVehicles(),
-        mupVehiclesApi.getDrivers(),
-        mupVehiclesApi.getOwners(),
-        mupVehiclesApi.getTransfers(),
-        mupVehiclesApi.getAdmins(),
-      ]);
+      const [healthResult, vehicleList, driverList, ownerList, transferList, adminList] =
+        await Promise.all([
+          mupVehiclesApi.health(),
+          mupVehiclesApi.getVehicles(),
+          mupVehiclesApi.getDrivers(),
+          mupVehiclesApi.getOwners(),
+          mupVehiclesApi.getTransfers(),
+          mupVehiclesApi.getAdmins(),
+        ]);
 
-      setHealth(h);
-      setVehicles(Array.isArray(v) ? (v as Vehicle[]) : []);
-      setDrivers(Array.isArray(d) ? (d as Driver[]) : []);
-      setOwners(Array.isArray(o) ? (o as Owner[]) : []);
-      setTransfers(Array.isArray(t) ? (t as OwnershipTransfer[]) : []);
-      setAdmins(Array.isArray(a) ? (a as Administrator[]) : []);
+      setHealth(healthResult);
+      setVehicles(Array.isArray(vehicleList) ? (vehicleList as Vehicle[]) : []);
+      setDrivers(Array.isArray(driverList) ? (driverList as Driver[]) : []);
+      setOwners(Array.isArray(ownerList) ? (ownerList as Owner[]) : []);
+      setTransfers(Array.isArray(transferList) ? (transferList as OwnershipTransfer[]) : []);
+      setAdmins(Array.isArray(adminList) ? (adminList as Administrator[]) : []);
 
-      // reset details
       setVehicleByReg(null);
       setVehicleByJmbg(null);
       setDriverById(null);
@@ -100,7 +99,7 @@ export default function MupVehiclesPage() {
       setSelectedJmbg("");
       setSelectedDriverId("");
     } catch (e: any) {
-      setError(e?.message || "Ne mogu da učitam MUP mock podatke.");
+      setError(e?.message || "Ne mogu da ucitam MUP podatke.");
     } finally {
       setLoading(false);
     }
@@ -110,15 +109,15 @@ export default function MupVehiclesPage() {
     void loadAll();
   }, []);
 
-  async function fetchVehicleByReg(reg: string) {
+  async function fetchVehicleByReg(registration: string) {
     setError(null);
     setVehicleByReg(null);
-    if (!reg) return;
+    if (!registration) return;
     try {
-      const v = (await mupVehiclesApi.getVehicleByRegistration(reg)) as Vehicle;
-      setVehicleByReg(v || null);
+      const vehicleItem = (await mupVehiclesApi.getVehicleByRegistration(registration)) as Vehicle;
+      setVehicleByReg(vehicleItem || null);
     } catch (e: any) {
-      setError(e?.message || "Nema vozila za ovu registraciju.");
+      setError(e?.message || "Nema vozila za izabranu registraciju.");
     }
   }
 
@@ -127,42 +126,39 @@ export default function MupVehiclesPage() {
     setVehicleByJmbg(null);
     if (!jmbg) return;
     try {
-      const v = (await mupVehiclesApi.getVehicleByOwnerJmbg(jmbg)) as Vehicle;
-      setVehicleByJmbg(v || null);
+      const vehicleItem = (await mupVehiclesApi.getVehicleByOwnerJmbg(jmbg)) as Vehicle;
+      setVehicleByJmbg(vehicleItem || null);
     } catch (e: any) {
-      setError(e?.message || "Nema vozila za ovaj JMBG.");
+      setError(e?.message || "Nema vozila za izabrani JMBG.");
     }
   }
 
-  async function fetchDriverById(id: string) {
+  async function fetchDriverById(driverId: string) {
     setError(null);
     setDriverById(null);
-    if (!id) return;
+    if (!driverId) return;
     try {
-      const d = (await mupVehiclesApi.getDriverById(id)) as Driver;
-      setDriverById(d || null);
+      const driverItem = (await mupVehiclesApi.getDriverById(driverId)) as Driver;
+      setDriverById(driverItem || null);
     } catch (e: any) {
-      setError(e?.message || "Nema vozača za ovaj ID.");
+      setError(e?.message || "Nema vozaca za izabrani ID.");
     }
   }
 
   return (
     <div className="grid gap-6">
-      {/* header */}
       <div className="rounded-2xl border border-slate-800 bg-white/5 p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-lg font-semibold">MUP Vozila</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              Pregled podataka
-            </p>
+            <h1 className="text-lg font-semibold">MUP vozila</h1>
+            <p className="mt-1 text-sm text-slate-400">Pregled vozila, vozaca i vlasnika.</p>
           </div>
 
           <button
             onClick={loadAll}
             className="rounded-xl border border-slate-700 bg-white/5 px-4 py-2 text-sm font-semibold hover:bg-white/10"
           >
-            {loading ? "..." : "Refresh"}
+            {loading ? "..." : "Osvezi"}
           </button>
         </div>
 
@@ -173,14 +169,13 @@ export default function MupVehiclesPage() {
         )}
       </div>
 
-      {/* navigation */}
       <div className="flex flex-wrap gap-2">
         {(
           [
             ["vehicles", "Vozila"],
-            ["drivers", "Vozači"],
+            ["drivers", "Vozaci"],
             ["owners", "Vlasnici"],
-            ["transfers", "Prenosi"],
+            ["transfers", "Prenosi vlasnistva"],
           ] as Array<[Section, string]>
         ).map(([key, label]) => (
           <button
@@ -197,25 +192,28 @@ export default function MupVehiclesPage() {
         ))}
       </div>
 
-      {/* content */}
       <div className="grid gap-6 lg:grid-cols-3">
         {active === "vehicles" && (
           <>
-            <div className="lg:col-span-2 grid gap-6">
+            <div className="grid gap-6 lg:col-span-2">
               <Card title={`Lista vozila (${vehicles.length})`}>
                 <div className="grid gap-3">
-                  {vehicles.map((v) => (
-                    <div key={v.id} className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
+                  {vehicles.map((vehicleItem) => (
+                    <div
+                      key={vehicleItem.id}
+                      className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4"
+                    >
                       <p className="text-sm font-semibold">
-                        {v.registration} • {v.mark} {v.model} ({v.year})
+                        {vehicleItem.registration} - {vehicleItem.mark} {vehicleItem.model} ({vehicleItem.year})
                       </p>
                       <p className="mt-1 text-xs text-slate-400">
-                        Boja: {v.color} • Ukradeno: {String(v.isStolen)}
+                        Boja: {vehicleItem.color} - Ukradeno: {String(vehicleItem.isStolen)}
                       </p>
                       <p className="mt-2 text-xs text-slate-300">
-                        Vlasnik: {v.owner?.firstName} {v.owner?.lastName} • {v.owner?.jmbg}
+                        Vlasnik: {vehicleItem.owner?.firstName} {vehicleItem.owner?.lastName} -{" "}
+                        {vehicleItem.owner?.jmbg}
                       </p>
-                      <Mono>ID: {v.id}</Mono>
+                      <Mono>ID: {vehicleItem.id}</Mono>
                     </div>
                   ))}
                 </div>
@@ -227,9 +225,9 @@ export default function MupVehiclesPage() {
                 <Select
                   label="Registracija"
                   value={selectedReg}
-                  onChange={(v) => {
-                    setSelectedReg(v);
-                    void fetchVehicleByReg(v);
+                  onChange={(value) => {
+                    setSelectedReg(value);
+                    void fetchVehicleByReg(value);
                   }}
                   options={vehicleOptions}
                   placeholder={vehicles.length ? "-- izaberi vozilo --" : "Nema vozila"}
@@ -239,13 +237,14 @@ export default function MupVehiclesPage() {
                 {vehicleByReg && (
                   <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
                     <p className="text-sm font-semibold">
-                      {vehicleByReg.registration} • {vehicleByReg.mark} {vehicleByReg.model}
+                      {vehicleByReg.registration} - {vehicleByReg.mark} {vehicleByReg.model}
                     </p>
                     <p className="mt-1 text-xs text-slate-400">
-                      {vehicleByReg.color} • {vehicleByReg.year} • stolen: {String(vehicleByReg.isStolen)}
+                      {vehicleByReg.color} - {vehicleByReg.year} - ukradeno:{" "}
+                      {String(vehicleByReg.isStolen)}
                     </p>
                     <p className="mt-2 text-xs text-slate-300">
-                      Owner: {vehicleByReg.owner?.firstName} {vehicleByReg.owner?.lastName} •{" "}
+                      Vlasnik: {vehicleByReg.owner?.firstName} {vehicleByReg.owner?.lastName} -{" "}
                       {vehicleByReg.owner?.jmbg}
                     </p>
                     <Mono>{vehicleByReg.id}</Mono>
@@ -255,11 +254,11 @@ export default function MupVehiclesPage() {
 
               <Card title="Vozilo po JMBG vlasnika">
                 <Select
-                  label="JMBG"
+                  label="JMBG vlasnika"
                   value={selectedJmbg}
-                  onChange={(v) => {
-                    setSelectedJmbg(v);
-                    void fetchVehicleByJmbg(v);
+                  onChange={(value) => {
+                    setSelectedJmbg(value);
+                    void fetchVehicleByJmbg(value);
                   }}
                   options={ownerOptions}
                   placeholder={owners.length ? "-- izaberi vlasnika --" : "Nema vlasnika"}
@@ -269,11 +268,9 @@ export default function MupVehiclesPage() {
                 {vehicleByJmbg && (
                   <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
                     <p className="text-sm font-semibold">
-                      {vehicleByJmbg.registration} • {vehicleByJmbg.mark} {vehicleByJmbg.model}
+                      {vehicleByJmbg.registration} - {vehicleByJmbg.mark} {vehicleByJmbg.model}
                     </p>
-                    <p className="mt-1 text-xs text-slate-400">
-                      Owner JMBG: {vehicleByJmbg.owner?.jmbg}
-                    </p>
+                    <p className="mt-1 text-xs text-slate-400">JMBG vlasnika: {vehicleByJmbg.owner?.jmbg}</p>
                     <Mono>{vehicleByJmbg.id}</Mono>
                   </div>
                 )}
@@ -284,18 +281,22 @@ export default function MupVehiclesPage() {
 
         {active === "drivers" && (
           <>
-            <div className="lg:col-span-2 grid gap-6">
-              <Card title={`Lista vozača (${drivers.length})`}>
+            <div className="grid gap-6 lg:col-span-2">
+              <Card title={`Lista vozaca (${drivers.length})`}>
                 <div className="grid gap-3">
-                  {drivers.map((d) => (
-                    <div key={d.id} className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
+                  {drivers.map((driverItem) => (
+                    <div
+                      key={driverItem.id}
+                      className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4"
+                    >
                       <p className="text-sm font-semibold">
-                        {d.owner?.firstName} {d.owner?.lastName}
+                        {driverItem.owner?.firstName} {driverItem.owner?.lastName}
                       </p>
                       <p className="mt-1 text-xs text-slate-400">
-                        points: {d.numberOfViolationPoints} • suspended: {String(d.isSuspended)}
+                        Poeni: {driverItem.numberOfViolationPoints} - suspendovan:{" "}
+                        {String(driverItem.isSuspended)}
                       </p>
-                      <Mono>{d.id}</Mono>
+                      <Mono>{driverItem.id}</Mono>
                     </div>
                   ))}
                 </div>
@@ -303,16 +304,16 @@ export default function MupVehiclesPage() {
             </div>
 
             <div className="grid gap-6">
-              <Card title="Vozac">
+              <Card title="Vozac po ID-u">
                 <Select
-                  label="Vozač"
+                  label="Vozac"
                   value={selectedDriverId}
-                  onChange={(v) => {
-                    setSelectedDriverId(v);
-                    void fetchDriverById(v);
+                  onChange={(value) => {
+                    setSelectedDriverId(value);
+                    void fetchDriverById(value);
                   }}
                   options={driverOptions}
-                  placeholder={drivers.length ? "-- izaberi vozača --" : "Nema vozača"}
+                  placeholder={drivers.length ? "-- izaberi vozaca --" : "Nema vozaca"}
                   disabled={drivers.length === 0}
                 />
 
@@ -322,7 +323,7 @@ export default function MupVehiclesPage() {
                       {driverById.owner?.firstName} {driverById.owner?.lastName}
                     </p>
                     <p className="mt-1 text-xs text-slate-400">
-                      points: {driverById.numberOfViolationPoints} • suspended:{" "}
+                      Poeni: {driverById.numberOfViolationPoints} - suspendovan:{" "}
                       {String(driverById.isSuspended)}
                     </p>
                     <Mono>{driverById.id}</Mono>
@@ -337,15 +338,18 @@ export default function MupVehiclesPage() {
           <div className="lg:col-span-3">
             <Card title={`Lista vlasnika (${owners.length})`}>
               <div className="grid gap-3 sm:grid-cols-2">
-                {owners.map((o) => (
-                  <div key={o.id} className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
+                {owners.map((ownerItem) => (
+                  <div
+                    key={ownerItem.id}
+                    className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4"
+                  >
                     <p className="text-sm font-semibold">
-                      {o.firstName} {o.lastName}
+                      {ownerItem.firstName} {ownerItem.lastName}
                     </p>
-                    <p className="mt-1 text-xs text-slate-400">{o.address}</p>
-                    <p className="mt-1 text-xs text-slate-300">JMBG: {o.jmbg}</p>
-                    <p className="mt-1 text-xs text-slate-300">Email: {o.email}</p>
-                    <Mono>{o.id}</Mono>
+                    <p className="mt-1 text-xs text-slate-400">{ownerItem.address}</p>
+                    <p className="mt-1 text-xs text-slate-300">JMBG: {ownerItem.jmbg}</p>
+                    <p className="mt-1 text-xs text-slate-300">Email: {ownerItem.email}</p>
+                    <Mono>{ownerItem.id}</Mono>
                   </div>
                 ))}
               </div>
@@ -355,21 +359,24 @@ export default function MupVehiclesPage() {
 
         {active === "transfers" && (
           <div className="lg:col-span-3">
-            <Card title={`Prenosi vlasništva (${transfers.length})`}>
+            <Card title={`Prenosi vlasnistva (${transfers.length})`}>
               {transfers.length === 0 ? (
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-400">
-                  Nema transfera (seed trenutno ne puni).
+                  Nema prenosa vlasnistva.
                 </div>
               ) : (
                 <div className="grid gap-3">
-                  {transfers.map((t) => (
-                    <div key={t.id} className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
-                      <p className="text-sm font-semibold">{t.vehicle?.registration}</p>
+                  {transfers.map((transferItem) => (
+                    <div
+                      key={transferItem.id}
+                      className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4"
+                    >
+                      <p className="text-sm font-semibold">{transferItem.vehicle?.registration}</p>
                       <p className="mt-1 text-xs text-slate-300">
-                        Old: {t.ownerOld?.firstName} {t.ownerOld?.lastName} → New:{" "}
-                        {t.ownerNew?.firstName} {t.ownerNew?.lastName}
+                        Stari vlasnik: {transferItem.ownerOld?.firstName} {transferItem.ownerOld?.lastName} -
+                        novi vlasnik: {transferItem.ownerNew?.firstName} {transferItem.ownerNew?.lastName}
                       </p>
-                      <Mono>{t.id}</Mono>
+                      <Mono>{transferItem.id}</Mono>
                     </div>
                   ))}
                 </div>

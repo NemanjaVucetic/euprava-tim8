@@ -4,7 +4,6 @@ import { authAdminApi } from "../api/queries";
 
 type Role = "CITIZEN" | "MUP" | "TRAFFIC";
 
-// prilagodi polja onome što auth-service vraća
 type UserRow = {
   id: string;
   firstName?: string;
@@ -12,6 +11,19 @@ type UserRow = {
   email?: string;
   role?: Role | string;
 };
+
+function roleLabel(role: Role): string {
+  switch (role) {
+    case "CITIZEN":
+      return "Gradjanin";
+    case "MUP":
+      return "MUP";
+    case "TRAFFIC":
+      return "Saobracajna policija";
+    default:
+      return role;
+  }
+}
 
 export default function UsersRolesPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -21,9 +33,9 @@ export default function UsersRolesPage() {
 
   const roleOptions = useMemo(
     () => [
-      { value: "CITIZEN" as Role, label: "CITIZEN" },
-      { value: "MUP" as Role, label: "MUP" },
-      { value: "TRAFFIC" as Role, label: "TRAFFIC" },
+      { value: "CITIZEN" as Role, label: roleLabel("CITIZEN") },
+      { value: "MUP" as Role, label: roleLabel("MUP") },
+      { value: "TRAFFIC" as Role, label: roleLabel("TRAFFIC") },
     ],
     []
   );
@@ -35,10 +47,7 @@ export default function UsersRolesPage() {
       const list = (await authAdminApi.getUsers()) as UserRow[];
       setUsers(Array.isArray(list) ? list : []);
     } catch (e: any) {
-      setError(
-        e?.message ||
-          "Ne mogu da učitam korisnike. Proveri da li backend ima GET /api/auth/users."
-      );
+      setError(e?.message || "Ne mogu da ucitam korisnike.");
     } finally {
       setLoading(false);
     }
@@ -55,10 +64,7 @@ export default function UsersRolesPage() {
       await authAdminApi.setUserRole(userId, role);
       await loadUsers();
     } catch (e: any) {
-      setError(
-        e?.message ||
-          "Ne mogu da sačuvam rolu. Proveri PATCH /api/auth/users/:id/role (body {role})."
-      );
+      setError(e?.message || "Ne mogu da sacuvam rolu.");
     } finally {
       setSavingId(null);
     }
@@ -68,17 +74,15 @@ export default function UsersRolesPage() {
     <div className="rounded-2xl border border-slate-800 bg-white/5 p-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Korisnici & role</h2>
-          <p className="mt-1 text-sm text-slate-400">
-            Dodela role korisnicima (admin deo).
-          </p>
+          <h2 className="text-lg font-semibold">Korisnici i role</h2>
+          <p className="mt-1 text-sm text-slate-400">Dodela rola korisnicima.</p>
         </div>
 
         <button
           onClick={loadUsers}
           className="rounded-xl border border-slate-700 bg-white/5 px-4 py-2 text-sm font-semibold hover:bg-white/10"
         >
-          {loading ? "..." : "Refresh"}
+          {loading ? "..." : "Osvezi"}
         </button>
       </div>
 
@@ -91,27 +95,30 @@ export default function UsersRolesPage() {
       <div className="mt-6 grid gap-3">
         {users.length === 0 && !loading ? (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-400">
-            Nema korisnika (ili endpoint ne vraća listu).
+            Trenutno nema korisnika.
           </div>
         ) : (
-          users.map((u) => (
-            <div key={u.id} className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
+          users.map((userRow) => (
+            <div
+              key={userRow.id}
+              className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4"
+            >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold">
-                    {(u.firstName || "-") + " " + (u.lastName || "")}
+                    {(userRow.firstName || "-") + " " + (userRow.lastName || "")}
                   </p>
-                  <p className="text-xs text-slate-400">{u.email || "-"}</p>
-                  <p className="mt-2 break-all font-mono text-[11px] text-slate-500">{u.id}</p>
+                  <p className="text-xs text-slate-400">{userRow.email || "-"}</p>
+                  <p className="mt-2 break-all font-mono text-[11px] text-slate-500">{userRow.id}</p>
                 </div>
 
-                <div className="min-w-[240px]">
+                <div className="min-w-[260px]">
                   <Select
-                    label="Role"
-                    value={(u.role as Role) || ("CITIZEN" as Role)}
-                    onChange={(r) => changeRole(u.id, r)}
+                    label="Rola"
+                    value={(userRow.role as Role) || ("CITIZEN" as Role)}
+                    onChange={(selectedRole) => changeRole(userRow.id, selectedRole)}
                     options={roleOptions}
-                    disabled={savingId === u.id}
+                    disabled={savingId === userRow.id}
                   />
                 </div>
               </div>

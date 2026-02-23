@@ -1,5 +1,33 @@
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000"
 
+function mapApiErrorMessage(message: string): string {
+  const normalized = message.trim().toLowerCase()
+
+  if (normalized.includes("driver not found for user email")) {
+    return "Nije pronadjen vozac za ulogovani email. Prijavi se nalogom koji postoji u MUP evidenciji."
+  }
+  if (normalized.includes("critical violations can be issued only by high rank police")) {
+    return "CRITICAL prekrsaj moze uneti samo policajac sa HIGH rangom."
+  }
+  if (normalized.includes("invalid driver id")) {
+    return "Izabrani vozac nije pronadjen."
+  }
+  if (normalized.includes("invalid vehicle registration")) {
+    return "Izabrano vozilo nije pronadjeno."
+  }
+  if (normalized.includes("police person is suspended")) {
+    return "Izabrani policajac je suspendovan."
+  }
+  if (normalized.includes("driver is suspended")) {
+    return "Vozac je suspendovan i ne moze dobiti novi prekrsaj."
+  }
+  if (normalized.includes("not found")) {
+    return "Trazeni podatak nije pronadjen."
+  }
+
+  return message
+}
+
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${url}`, {
     headers: {
@@ -10,8 +38,26 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   })
 
   if (!response.ok) {
+    let message = "Doslo je do greske u komunikaciji sa serverom."
     const text = await response.text()
-    throw new Error(text || "API error")
+    const contentType = response.headers.get("content-type") || ""
+
+    if (text) {
+      try {
+        const payload = JSON.parse(text)
+        if (typeof payload?.error === "string") message = payload.error
+        else if (typeof payload?.message === "string") message = payload.message
+        else if (typeof payload?.details === "string") message = payload.details
+        else message = text
+      } catch {
+        if (contentType.includes("application/json")) {
+          message = "Doslo je do greske u komunikaciji sa serverom."
+        }
+        else message = text
+      }
+    }
+
+    throw new Error(mapApiErrorMessage(message))
   }
 
   // login može da vraća plain json; ako nekad vraća prazno, handle-uj ovde
@@ -40,6 +86,7 @@ export type LoginRequest = {
 
 export type LoginResponse = {
   accessToken?: string
+  access_token?: string
   refreshToken?: string
   token?: string
   role: string
@@ -109,6 +156,10 @@ export const trafficPoliceApi = {
     apiFetch<any>(`/api/traffic-police/violations`, { method: "POST", body: JSON.stringify(data) }),
   getViolationsByDriver: (driverId: string) =>
     apiFetch<any[]>(`/api/traffic-police/violations/driver/${driverId}`),
+  getMyViolations: (email: string) =>
+    apiFetch<{ email: string; driverId: string; violations: any[] }>(
+      `/api/traffic-police/violations/my/${encodeURIComponent(email)}`
+    ),
 
   // ===== NEW: Driver Report (This was missing!) =====
   getDriverReport: (driverId: string) =>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { authApi, type LoginResponse } from "../api/queries";
 
 type Props = {
-  onLogin: (email: string) => void;
+  onLogin: (email: string, role: "CITIZEN" | "MUP" | "TRAFFIC") => void;
 };
 
 type Mode = "login" | "register";
@@ -70,13 +70,22 @@ export default function LoginPage({ onLogin }: Props) {
         password,
       });
 
-      const token = (res as LoginResponse)?.accessToken || (res as LoginResponse)?.token;
+      const token =
+        (res as LoginResponse)?.accessToken ||
+        (res as LoginResponse)?.access_token ||
+        (res as LoginResponse)?.token;
       if (token) localStorage.setItem("accessToken", token);
 
       localStorage.setItem("email", email.trim());
-      localStorage.setItem("role", res.role);
+      const role = ((res as LoginResponse)?.role || "").trim().toUpperCase();
+      if (role === "CITIZEN" || role === "MUP" || role === "TRAFFIC") {
+        localStorage.setItem("role", role);
+      } else {
+        localStorage.removeItem("role");
+        throw new Error("Login response nema validnu rolu.");
+      }
 
-      onLogin(email.trim());
+      onLogin(email.trim(), role as "CITIZEN" | "MUP" | "TRAFFIC");
     } catch (err: any) {
       // ako koristiš axios/fetch wrapper, ovde možeš fino da izvučeš poruku
       const msg =

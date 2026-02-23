@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -125,6 +126,9 @@ func main() {
 		panic(fmt.Sprintf("Failed to connect to database: %v", err))
 	}
 	if err = data.AutoMigrate(db); err != nil {
+		panic(err)
+	}
+	if err = data.SeedDefaultPolice(db); err != nil {
 		panic(err)
 	}
 
@@ -369,6 +373,36 @@ func main() {
 			return
 		}
 		c.JSON(200, list)
+	})
+
+	r.GET("/violations/my/:email", func(c *gin.Context) {
+		email := c.Param("email")
+		if email == "" {
+			c.JSON(400, gin.H{"error": "email is required"})
+			return
+		}
+
+		driver, status, err := mupGet[MupDriver](httpClient, cfg.MupBaseURL, "/drivers/email/"+url.PathEscape(email))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "mup drivers request failed"})
+			return
+		}
+		if status == 404 || driver == nil {
+			c.JSON(404, gin.H{"error": "driver not found for user email"})
+			return
+		}
+
+		var list []models.Violation
+		if err := store.ListViolationsByDriver(driver.ID, &list); err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"email":      email,
+			"driverId":   driver.ID,
+			"violations": list,
+		})
 	})
 
 	// ===== Transfers (ostavljeno kao ranije) =====

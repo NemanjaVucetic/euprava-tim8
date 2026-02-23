@@ -169,6 +169,9 @@ func (s *Store) CreateViolation(v *models.Violation) error {
 		if p.PoliceProfile.IsSuspended { // ← kroz PoliceProfile
 			return errors.New("police person is suspended")
 		}
+		if v.TypeOfViolation == models.ViolationCritical && p.PoliceProfile.Rank != models.RankHigh {
+			return errors.New("critical violations can be issued only by HIGH rank police")
+		}
 	}
 
 	if v.Date.IsZero() {
