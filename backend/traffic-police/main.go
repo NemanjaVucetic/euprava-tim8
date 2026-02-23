@@ -317,31 +317,44 @@ func main() {
 
 	// Add this to your main.go
 	r.GET("/drivers/:id/report", func(c *gin.Context) {
+		driverID := c.Param("id")
+
 		var violations []models.Violation
-		store.ListViolationsByDriver(c.Param("id"), &violations)
+		store.ListViolationsByDriver(driverID, &violations)
 
 		score := 0
 		for _, v := range violations {
 			if v.TypeOfViolation == "CRITICAL" {
-				score += 10
-			}
-			if v.TypeOfViolation == "MAJOR" {
 				score += 5
 			}
+			if v.TypeOfViolation == "MAJOR" {
+				score += 3
+			}
 			if v.TypeOfViolation == "MINOR" {
-				score += 2
+				score += 1
 			}
 		}
 
 		riskLevel := "LOW"
-		if score > 20 {
+		if score > 10 {
 			riskLevel = "HIGH"
-		} else if score > 10 {
+		} else if score > 5 {
 			riskLevel = "MEDIUM"
 		}
 
+		driver, driverStatus, err := mupGet[MupDriver](httpClient, cfg.MupBaseURL, "/drivers/"+driverID)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "mup drivers request failed"})
+			return
+		}
+		if driverStatus == 404 || driver == nil {
+			c.JSON(404, gin.H{"error": "driver not found"})
+			return
+		}
+
 		c.JSON(200, gin.H{
-			"driver_id":        c.Param("id"),
+			"driver_id":        driverID,
+			"current_points":   driver.NumberOfViolationPoints,
 			"total_violations": len(violations),
 			"risk_score":       score,
 			"risk_level":       riskLevel,

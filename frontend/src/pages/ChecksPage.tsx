@@ -4,6 +4,7 @@ import type { Driver, Vehicle } from "../types/api";
 
 interface DriverReport {
   driver_id: string;
+  current_points?: number;
   risk_level: string;
   risk_score: number;
   total_violations: number;
@@ -207,8 +208,10 @@ export default function ChecksPage() {
                   <span className="font-bold">{report.total_violations}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-400">Skor rizika:</span>
-                  <span className="font-bold">{report.risk_score}</span>
+                  <span className="text-sm text-slate-400">Bodovi vozaca:</span>
+                  <span className="font-bold">
+                    {typeof report.current_points === "number" ? report.current_points : report.risk_score}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-400">Nivo rizika:</span>

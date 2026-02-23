@@ -143,11 +143,11 @@ export default function App() {
   };
 
   const RequireAuth = ({ children }: { children: React.ReactNode }) => {
-    if (!user) return <Navigate to="/login" replace />;
+    if (!user || !role) return <Navigate to="/login" replace />;
     return <>{children}</>;
   };
 
-  const homeRoute = getDefaultRouteForRole(role);
+  const homeRoute = role ? getDefaultRouteForRole(role) : "/login";
 
   return (
     <BrowserRouter>
@@ -155,7 +155,7 @@ export default function App() {
         <Route
           path="/login"
           element={
-            user ? (
+            user && role ? (
               <Navigate to={homeRoute} replace />
             ) : (
               <LoginPage

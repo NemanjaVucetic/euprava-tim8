@@ -58,9 +58,9 @@ export default function ViolationsPage() {
 
   const typeOptions = useMemo(
     () => [
-      { value: "MINOR" as TypeOfViolation, label: "Mali" },
-      { value: "MAJOR" as TypeOfViolation, label: "Veliki" },
-      { value: "CRITICAL" as TypeOfViolation, label: "Kritican" },
+      { value: "MINOR" as TypeOfViolation, label: formatViolation("MINOR") },
+      { value: "MAJOR" as TypeOfViolation, label: formatViolation("MAJOR") },
+      { value: "CRITICAL" as TypeOfViolation, label: formatViolation("CRITICAL") },
     ],
     []
   );
@@ -307,7 +307,7 @@ export default function ViolationsPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-slate-800 bg-white/5 p-3">
                     <p className="text-xs text-slate-500">Tip</p>
-                    <p className="font-semibold">{selected.typeOfViolation}</p>
+                    <p className="font-semibold">{formatViolation(selected.typeOfViolation)}</p>
                   </div>
                   <div className="rounded-xl border border-slate-800 bg-white/5 p-3">
                     <p className="text-xs text-slate-500">Datum</p>

@@ -10,11 +10,8 @@ type Mode = "login" | "register";
 export default function LoginPage({ onLogin }: Props) {
   const [mode, setMode] = useState<Mode>("login");
 
-  // register fields
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-
-  // login/register
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -55,14 +52,13 @@ export default function LoginPage({ onLogin }: Props) {
           password,
         });
 
-        setSuccess("Registracija uspešna. Sada se prijavi.");
+        setSuccess("Registracija je uspesna. Nastavite prijavom.");
         setMode("login");
         setConfirm("");
         setPassword("");
         return;
       }
 
-      // LOGIN
       if (!canLogin) return;
 
       const res = await authApi.login({
@@ -87,11 +83,10 @@ export default function LoginPage({ onLogin }: Props) {
 
       onLogin(email.trim(), role as "CITIZEN" | "MUP" | "TRAFFIC");
     } catch (err: any) {
-      // ako koristiš axios/fetch wrapper, ovde možeš fino da izvučeš poruku
       const msg =
         err?.response?.data?.message ||
         err?.message ||
-        "Neuspešna akcija. Proveri kredencijale i pokušaj ponovo.";
+        "Prijava nije uspela. Proverite unete podatke i pokusajte ponovo.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -101,49 +96,37 @@ export default function LoginPage({ onLogin }: Props) {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-12 md:grid-cols-2">
-        {/* Left / branding */}
         <div className="space-y-6">
           <div className="inline-flex items-center gap-3 rounded-2xl border border-slate-800 bg-white/5 px-4 py-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400" />
             <div>
-              <p className="text-xs text-slate-400">FTN • Projekat</p>
-              <p className="text-sm font-semibold">e-Uprava (mikroservisi)</p>
+              <p className="text-xs text-slate-400">e-Uprava</p>
+              <p className="text-sm font-semibold">Portal</p>
             </div>
           </div>
 
           <h1 className="text-4xl font-semibold leading-tight tracking-tight">
-            Portal za usluge građana i institucija
+            Portal za usluge gradjana i institucija
           </h1>
 
           <p className="text-slate-400">
-            Prijava / registracija za pristup servisima:{" "}
-            <span className="text-slate-200">MUP Vozila</span> i{" "}
-            <span className="text-slate-200">Saobraćajna Policija</span>.
+            Prijava i registracija za pristup servisima za evidenciju vozila, prekrsaja i policijskih
+            provera.
           </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-slate-800 bg-white/5 p-4">
-              <p className="text-sm font-medium">MUP Vozila</p>
-              <p className="mt-1 text-sm text-slate-400">
-                Registracija, provera vozila, vlasništvo, status.
-              </p>
+              <p className="text-sm font-medium">MUP evidencija</p>
+              <p className="mt-1 text-sm text-slate-400">Pregled vozila, vlasnika i vozaca.</p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-white/5 p-4">
-              <p className="text-sm font-medium">Saobraćajna Policija</p>
-              <p className="mt-1 text-sm text-slate-400">
-                Kazne, prekršaji, status dozvole, evidencije.
-              </p>
+              <p className="text-sm font-medium">Saobracajna policija</p>
+              <p className="mt-1 text-sm text-slate-400">Evidencija i obrada prekrsaja.</p>
             </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-800 bg-gradient-to-r from-indigo-500/10 to-cyan-500/10 p-4 text-sm text-slate-300">
-            Tip: za demo možeš registrovati novog korisnika pa se odmah prijaviti.
           </div>
         </div>
 
-        {/* Right / form */}
         <div className="rounded-3xl border border-slate-800 bg-white/5 p-6 shadow-xl">
-          {/* Tabs */}
           <div className="mb-6 flex rounded-2xl border border-slate-800 bg-slate-900/30 p-1">
             <button
               type="button"
@@ -152,9 +135,7 @@ export default function LoginPage({ onLogin }: Props) {
                 resetMessages();
               }}
               className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${
-                mode === "login"
-                  ? "bg-indigo-500 text-white"
-                  : "text-slate-300 hover:bg-white/5"
+                mode === "login" ? "bg-indigo-500 text-white" : "text-slate-300 hover:bg-white/5"
               }`}
             >
               Prijava
@@ -166,9 +147,7 @@ export default function LoginPage({ onLogin }: Props) {
                 resetMessages();
               }}
               className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${
-                mode === "register"
-                  ? "bg-indigo-500 text-white"
-                  : "text-slate-300 hover:bg-white/5"
+                mode === "register" ? "bg-indigo-500 text-white" : "text-slate-300 hover:bg-white/5"
               }`}
             >
               Registracija
@@ -176,13 +155,11 @@ export default function LoginPage({ onLogin }: Props) {
           </div>
 
           <div className="mb-4">
-            <h2 className="text-2xl font-semibold">
-              {mode === "login" ? "Prijava" : "Registracija"}
-            </h2>
+            <h2 className="text-2xl font-semibold">{mode === "login" ? "Prijava" : "Registracija"}</h2>
             <p className="mt-1 text-sm text-slate-400">
               {mode === "login"
-                ? "Unesi email i lozinku da pristupiš portalu."
-                : "Kreiraj nalog (ime, prezime, email i lozinka)."}
+                ? "Unesite email i lozinku za pristup."
+                : "Unesite osnovne podatke za kreiranje naloga."}
             </p>
           </div>
 
@@ -198,7 +175,6 @@ export default function LoginPage({ onLogin }: Props) {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* First + Last name (register only) */}
             {mode === "register" && (
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
@@ -207,7 +183,7 @@ export default function LoginPage({ onLogin }: Props) {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
-                    placeholder="npr. Aleksandra"
+                    placeholder="Unesite ime"
                     autoComplete="given-name"
                   />
                   {!firstNameOk && firstName.length > 0 && (
@@ -221,7 +197,7 @@ export default function LoginPage({ onLogin }: Props) {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
-                    placeholder="npr. Batinić"
+                    placeholder="Unesite prezime"
                     autoComplete="family-name"
                   />
                   {!lastNameOk && lastName.length > 0 && (
@@ -231,23 +207,21 @@ export default function LoginPage({ onLogin }: Props) {
               </div>
             )}
 
-            {/* Email */}
             <div>
               <label className="mb-1 block text-sm text-slate-300">Email</label>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
-                placeholder="npr. aleksandra@gmail.com"
+                placeholder="Unesite email"
                 type="email"
                 autoComplete="email"
               />
               {!emailOk && email.length > 0 && (
-                <p className="mt-1 text-xs text-slate-500">Unesi ispravan email.</p>
+                <p className="mt-1 text-xs text-slate-500">Unesite ispravan email.</p>
               )}
             </div>
 
-            {/* Password */}
             <div>
               <label className="mb-1 block text-sm text-slate-300">Lozinka</label>
               <input
@@ -255,7 +229,7 @@ export default function LoginPage({ onLogin }: Props) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
-                placeholder="••••••••"
+                placeholder="Unesite lozinku"
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
               />
               {!passwordOk && password.length > 0 && (
@@ -263,16 +237,15 @@ export default function LoginPage({ onLogin }: Props) {
               )}
             </div>
 
-            {/* Confirm password (register only) */}
             {mode === "register" && (
               <div>
-                <label className="mb-1 block text-sm text-slate-300">Potvrdi lozinku</label>
+                <label className="mb-1 block text-sm text-slate-300">Potvrdite lozinku</label>
                 <input
                   type="password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
-                  placeholder="••••••••"
+                  placeholder="Ponovo unesite lozinku"
                   autoComplete="new-password"
                 />
                 {confirm.length > 0 && confirm !== password && (
@@ -286,13 +259,13 @@ export default function LoginPage({ onLogin }: Props) {
               disabled={loading || (mode === "login" ? !canLogin : !canRegister)}
               className="w-full rounded-xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? "Sačekaj..." : mode === "login" ? "Prijavi se" : "Registruj se"}
+              {loading ? "Sacekajte..." : mode === "login" ? "Prijavi se" : "Registruj se"}
             </button>
 
             <p className="text-center text-xs text-slate-500">
               {mode === "login" ? (
                 <>
-                  Nemaš nalog?{" "}
+                  Nemate nalog?{" "}
                   <button
                     type="button"
                     onClick={() => {
@@ -301,12 +274,12 @@ export default function LoginPage({ onLogin }: Props) {
                     }}
                     className="text-slate-200 underline underline-offset-4 hover:text-white"
                   >
-                    Registruj se
+                    Registrujte se
                   </button>
                 </>
               ) : (
                 <>
-                  Već imaš nalog?{" "}
+                  Vec imate nalog?{" "}
                   <button
                     type="button"
                     onClick={() => {
@@ -315,7 +288,7 @@ export default function LoginPage({ onLogin }: Props) {
                     }}
                     className="text-slate-200 underline underline-offset-4 hover:text-white"
                   >
-                    Prijavi se
+                    Prijavite se
                   </button>
                 </>
               )}
