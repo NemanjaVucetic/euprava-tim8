@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
 import RequireRole from "./api/RequireRole";
@@ -25,9 +25,30 @@ function getStoredRole(): AppRole | null {
   return null;
 }
 
+function getRoleFromToken(): AppRole | null {
+  const token = localStorage.getItem("accessToken") || "";
+  if (!token) return null;
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+
+  try {
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    const role = String(payload?.role || "").trim().toUpperCase();
+    if (role === "CITIZEN" || role === "MUP" || role === "TRAFFIC") return role;
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function getEffectiveRole(): AppRole | null {
+  return getRoleFromToken() || getStoredRole();
+}
+
 function getDefaultRouteForRole(role: AppRole | null): string {
   if (role === "CITIZEN") return "/my-violations";
-  if (role === "MUP") return "/mup";
+  if (role === "MUP") return "/traffic";
   return "/traffic";
 }
 
@@ -107,7 +128,11 @@ function Layout({
 
 export default function App() {
   const [user, setUser] = useState<string | null>(() => getStoredUser());
-  const [role, setRole] = useState<AppRole | null>(() => getStoredRole());
+  const [role, setRole] = useState<AppRole | null>(() => getEffectiveRole());
+
+  useEffect(() => {
+    setRole(getEffectiveRole());
+  }, [user]);
 
   const logout = () => {
     localStorage.removeItem("accessToken");
@@ -165,7 +190,7 @@ export default function App() {
                   <Route
                     path="/traffic"
                     element={
-                      <RequireRole role="TRAFFIC">
+                      <RequireRole roles={["TRAFFIC", "MUP"]}>
                         <TrafficPoliceDashboardPage />
                       </RequireRole>
                     }
