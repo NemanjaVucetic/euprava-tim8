@@ -3,6 +3,8 @@ package types
 import (
 	"math/rand"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type BaseModel struct {
@@ -18,6 +20,14 @@ func generateID(n int) string {
 		s[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(s)
+}
+
+func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {
+	rand.Seed(time.Now().UnixNano()) //nolint:staticcheck
+	if b.ID == "" {
+		b.ID = generateID(10)
+	}
+	return nil
 }
 
 type User struct {
